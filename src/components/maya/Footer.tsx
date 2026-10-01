@@ -1,14 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Eye, Info, LifeBuoy, MessageSquareHeart } from "lucide-react";
+import { Eye, Info } from "lucide-react";
+import { FeedbackDialog } from "./FeedbackDialog";
 
 const focus =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-
-const links = [
-  { to: "/clinic", label: "Watch", icon: Eye },
-  { to: "/guide", label: "Guide", icon: LifeBuoy },
-  { to: "/feedback", label: "Feedback", icon: MessageSquareHeart },
-] as const;
+const linkCls = `flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-150 hover:text-primary ${focus}`;
 
 export function Footer() {
   return (
@@ -19,16 +15,11 @@ export function Footer() {
           <p>Demo with fictional data - do not enter real health information.</p>
         </div>
         <nav aria-label="Footer" className="flex items-center gap-1">
-          {links.map((l) => (
-            <Link
-              key={l.label}
-              to={l.to}
-              className={`flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-150 hover:text-primary ${focus}`}
-            >
-              <l.icon className="h-4 w-4" aria-hidden="true" />
-              {l.label}
-            </Link>
-          ))}
+          <Link to="/watch" className={linkCls}>
+            <Eye className="h-4 w-4" aria-hidden="true" />
+            Watch
+          </Link>
+          <FeedbackDialog triggerClassName={linkCls} />
         </nav>
       </div>
     </footer>
