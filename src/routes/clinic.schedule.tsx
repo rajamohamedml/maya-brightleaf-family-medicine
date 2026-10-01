@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, Ban, ChevronLeft, ChevronRight, Loader2, Plus, Video, XCircle } from "lucide-react";
+import { AlertTriangle, Ban, ChevronLeft, ChevronRight, Loader2, Plus, SwatchBook, Video, XCircle } from "lucide-react";
 import { addBlock, getWeek, listPatients, setVisitStatus } from "@/lib/staff.functions";
 import { bookAppointment } from "@/lib/booking.functions";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
@@ -44,8 +44,42 @@ const BLOCK_STYLE: Record<string, { label: string; cls: string }> = {
   telehealth_only: { label: "Telehealth only", cls: "bg-accent/40 text-accent-foreground" },
   sick_hold: { label: "Sick hold", cls: "bg-warning-soft/60 text-warning" },
 };
+const BLOCK_LEGEND: { label: string; cls: string }[] = [
+  { label: "Lunch", cls: "bg-muted/60 border-border" },
+  { label: "Blocked", cls: "bg-destructive-soft/70 border-destructive/60" },
+  { label: "Telehealth-only", cls: "bg-accent/40 border-accent-foreground/50" },
+  { label: "Sick hold", cls: "bg-warning-soft/60 border-warning/60" },
+];
+const STRIPES = { backgroundImage: "repeating-linear-gradient(45deg, transparent 0 2px, rgba(226,232,240,0.14) 2px 4px)" };
+const LEGEND_SHORT: Record<string, string> = {
+  new_patient: "New patient",
+  physical: "Annual physical",
+  medicare_awv: "Medicare wellness",
+  follow_up: "Follow-up",
+  sick: "Sick visit",
+  telehealth: "Telehealth",
+};
 const selectCls = "min-h-11 w-full rounded-md border border-input bg-background px-3 text-foreground";
 const TIMES = Array.from({ length: ROWS + 1 }, (_, i) => START + i * 15);
+
+function LegendList({ className }: { className?: string }) {
+  return (
+    <ul className={cn("flex flex-wrap items-center gap-x-4 gap-y-1.5", className)} aria-label="Schedule colour legend">
+      {VISIT_TYPES.map((v) => (
+        <li key={v.code} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <span aria-hidden="true" className={cn("h-3 w-3 shrink-0 rounded-[3px] border", VISIT_SCHEDULE_COLOR[v.code])} />
+          {LEGEND_SHORT[v.code] ?? v.name}
+        </li>
+      ))}
+      {BLOCK_LEGEND.map((b) => (
+        <li key={b.label} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <span aria-hidden="true" className={cn("h-3 w-3 shrink-0 rounded-[3px] border", b.cls)} style={STRIPES} />
+          {b.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function Schedule() {
   const [monday, setMonday] = useState<string | undefined>();
