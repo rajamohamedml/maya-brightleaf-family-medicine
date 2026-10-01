@@ -63,6 +63,7 @@ export function VoicePanel({
   const awaitingReply = useRef(false);
   const speakToken = useRef(0);
   const ended = useRef(false);
+  const active = useRef(false); // mic toggled on by the user
   const handsFreeRef = useRef(handsFree);
   handsFreeRef.current = handsFree;
 
@@ -94,6 +95,7 @@ export function VoicePanel({
       if (silence.current) clearTimeout(silence.current);
       silence.current = setTimeout(() => rec.stop(), SILENCE_MS);
     };
+    let heard = "";
     rec.onresult = (e) => {
       let interim = "";
       finalText = "";
@@ -102,8 +104,9 @@ export function VoicePanel({
         if (r.isFinal) finalText += r[0].transcript;
         else interim += r[0].transcript;
       }
-      onTranscript((finalText + interim).trim());
-      arm();
+      heard = (finalText + interim).trim();
+      onTranscript(heard);
+      if (heard) arm(); // only stop after silence once something was said
     };
     rec.onerror = (e) => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") setDenied(true);
@@ -112,24 +115,29 @@ export function VoicePanel({
       if (silence.current) clearTimeout(silence.current);
       if (recRef.current !== rec) return;
       recRef.current = null;
-      const text = finalText.trim();
+      const text = (finalText || heard).trim();
       if (text && !ended.current) {
         awaitingReply.current = true;
         setState("thinking");
         onSend(text);
+      } else if (active.current && !ended.current) {
+        // Browser ended the session on its own — keep listening until the user taps off.
+        window.setTimeout(() => active.current && listen(), 150);
       } else setState("idle");
     };
     recRef.current = rec;
     try {
       rec.start();
       setState("listening");
-      arm();
     } catch {
       setState("idle");
     }
   }, [onSend, onTranscript]);
 
-  const stopListening = () => recRef.current?.stop();
+  const stopListening = () => {
+    active.current = false;
+    recRef.current?.stop();
+  };
 
   // Speak Maya's reply once the voice turn finishes streaming.
   useEffect(() => {
@@ -150,7 +158,8 @@ export function VoicePanel({
     u.onend = u.onerror = () => {
       if (token !== speakToken.current || ended.current) return;
       setState("idle");
-      if (handsFreeRef.current) listen();
+      if (handsFreeRef.current && active.current) listen();
+      else active.current = false;
     };
     setState("speaking");
     window.speechSynthesis.cancel();
@@ -165,11 +174,13 @@ export function VoicePanel({
     if (state === "listening") return stopListening();
     if (state === "thinking") return;
     ended.current = false;
+    active.current = true;
     listen(); // also barges in while Maya is speaking
   };
 
   const end = () => {
     ended.current = true;
+    active.current = false;
     speakToken.current++;
     recRef.current?.abort();
     recRef.current = null;
@@ -200,7 +211,7 @@ export function VoicePanel({
       <span aria-live="polite" className="mr-auto truncate text-xs text-muted-foreground">
         {state === "idle" ? "" : label}
       </span>
-      {state !== "idle" && (
+      {(
         <label className="hidden min-h-11 cursor-pointer items-center gap-1.5 px-2 text-xs sm:flex">
           <input
             type="checkbox"
@@ -208,7 +219,7 @@ export function VoicePanel({
             onChange={(e) => setHandsFree(e.target.checked)}
             className="h-4 w-4 accent-primary"
           />
-          Hands-free
+          Keep listening
         </label>
       )}
       {state !== "idle" && (
@@ -296,6 +307,7 @@ export function VoicePanel({
                   setConsented(true);
                   setShowNotice(false);
                   ended.current = false;
+                  active.current = true;
                   window.setTimeout(listen, 0);
                 }}
               >
