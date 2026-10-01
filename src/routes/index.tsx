@@ -192,8 +192,8 @@ function Landing() {
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
             {HOURS.map((h) => (
               <div key={h.days} className="contents">
-                <dt>{h.days}</dt>
-                <dd className="text-right text-muted-foreground">{h.time}</dd>
+                <dt className="whitespace-nowrap">{h.days}</dt>
+                <dd className="whitespace-nowrap text-right text-muted-foreground">{h.time}</dd>
               </div>
             ))}
           </dl>
