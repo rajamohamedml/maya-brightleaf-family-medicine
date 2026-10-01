@@ -303,19 +303,21 @@ export function MayaChat({
 
       <Conversation className="flex-1">
         <ConversationContent aria-live="polite" className="gap-5 text-base">
-          {messages.length === 0 && (
+          {voiceSession && (
+            <div className="flex gap-3">
+              <MayaAvatar />
+              <p className="pt-1.5 text-[15px]">{VOICE_GREETING}</p>
+            </div>
+          )}
+          {messages.length === 0 && !voiceSession && (
             <div className="space-y-4">
               <div className="flex gap-3">
                 <MayaAvatar />
                 <p className="pt-1.5 text-[15px]">
-                  {voiceSession ? (
-                    VOICE_GREETING
-                  ) : (
-                    <>Hi, I'm Maya. I can book a visit, answer questions about the clinic, or pass a message to the team. How can I help?</>
-                  )}
+                  Hi, I'm Maya. I can book a visit, answer questions about the clinic, or pass a message to the team. How can I help?
                 </p>
               </div>
-              {voice && !voiceSession ? (
+              {voice ? (
                 <div className="pl-12">
                   <Button
                     type="button"

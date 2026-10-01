@@ -192,12 +192,16 @@ export function VoicePanel({
   }, [listen, onSessionStart]);
 
   const requestStart = useCallback(() => {
+    if (!getRecCtor()) {
+      onSessionStart?.();
+      return;
+    }
     if (!consented) {
       setShowNotice(true);
       return;
     }
     beginVoiceSession();
-  }, [beginVoiceSession, consented]);
+  }, [beginVoiceSession, consented, onSessionStart]);
 
   useEffect(() => {
     if (startSignal === lastStartSignal.current) return;

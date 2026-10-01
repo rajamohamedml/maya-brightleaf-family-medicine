@@ -23,4 +23,4 @@
 - Automations: `src/lib/automations.server.ts` (idempotent, simulated time), run by staff demo clock or cron route `/api/public/hooks/run-automations` — no edge functions.
 - Maya chat: route `/api/maya-chat` (`src/lib/maya-chat.server.ts`); tools reuse booking server fns; keyword red-flag gate before any model call — safety server-side.
 - Message links via `resolveAppUrl` (`src/lib/app-url.server.ts`): APP_URL else request public origin — works in preview and published.
-- Voice: browser-only Web Speech API in Maya's unified chat composer; transcripts go through /api/maya-chat with channel=voice (booking source voice) — no third-party voice.
+- Voice: browser-only Web Speech API in Maya's unified chat composer; each user-started session greets before listening, then transcripts use /api/maya-chat with channel=voice — no third-party voice.
