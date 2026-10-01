@@ -12,5 +12,5 @@
 # Architecture rules
 - Demo data is rebuilt by the SQL function `public.seed_demo()` (service role only) — one idempotent reset point for demos.
 - Public clinic facts for the landing page live in `src/lib/clinic-info.ts` — anon users have no table access.
-- Shared UI lives in `src/components/maya/`; colors come only from tokens in `src/styles.css` (cta = coral, primary = teal).
+- Shared UI lives in `src/components/maya/`; the app uses a token-driven dark clinical theme in `src/styles.css` (cta = coral, primary = teal) so every page inherits one accessible visual system.
 - `/clinic` is a layout route (`clinic.tsx`) with desktop left nav and mobile bottom tabs.
