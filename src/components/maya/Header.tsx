@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Mic, Stethoscope, Users, ExternalLink, Lock, Eye } from "lucide-react";
+import { Mic, Stethoscope, Users, LogOut, Lock, Eye } from "lucide-react";
 import { LeafMark } from "./Logo";
 import { VOICE_ENABLED } from "@/lib/clinic-info";
 
@@ -31,10 +31,9 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
   );
 }
 
-export function Header() {
+export function Header({ onSignOut }: { onSignOut?: () => void }) {
   const location = useLocation();
   const inClinic = location.pathname.startsWith("/clinic");
-  const isLogin = location.pathname === "/clinic/login";
   const link = `flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-foreground ${focus}`;
 
   return (
@@ -45,7 +44,6 @@ export function Header() {
             <LeafMark />
             <span>Brightleaf Family Medicine</span>
           </Link>
-          {inClinic && <span className="hidden text-sm font-semibold text-primary sm:inline">Clinic dashboard</span>}
         </div>
         <div className="flex items-center gap-1">
           <SideSwitch inClinic={inClinic} />
@@ -54,10 +52,10 @@ export function Header() {
               <Mic className="h-4 w-4" aria-hidden="true" /> Talk to Maya
             </Link>
           )}
-          {inClinic && !isLogin && (
-            <Link to="/" className={`${link} hidden sm:flex`}>
-              View patient site <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            </Link>
+          {inClinic && onSignOut && (
+            <button type="button" onClick={onSignOut} className={`${link} hidden sm:flex`}>
+              <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> Sign out
+            </button>
           )}
           {!inClinic && (
             <Link to="/clinic" className={`${link} hidden sm:flex`}>
