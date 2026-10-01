@@ -1,0 +1,71 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, type FormEvent } from "react";
+import { Loader2 } from "lucide-react";
+import { Header } from "@/components/maya/Header";
+import { Footer } from "@/components/maya/Footer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+
+export const Route = createFileRoute("/clinic/login")({
+  head: () => ({
+    meta: [
+      { title: "Staff sign in — Brightleaf" },
+      { name: "description", content: "Sign in to the Brightleaf staff area." },
+      { property: "og:title", content: "Staff sign in — Brightleaf" },
+      { property: "og:description", content: "Sign in to the Brightleaf staff area." },
+    ],
+  }),
+  component: Login,
+});
+
+function Login() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setBusy(false);
+    if (error) return setError("That email or password didn't work. Check them and try again.");
+    navigate({ to: "/clinic", replace: true });
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <Header />
+      <main className="mx-auto w-full max-w-sm flex-1 px-4 py-12">
+        <h1 className="text-2xl font-semibold">Staff sign in</h1>
+        <p className="mt-1 text-muted-foreground">For Dr. Rahman and the front desk.</p>
+        <form onSubmit={submit} className="surface-tile mt-6 space-y-4 rounded-xl border border-border p-5" noValidate>
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" autoComplete="email" className="min-h-11" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" autoComplete="current-password" className="min-h-11" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          <Button type="submit" variant="cta" className="min-h-11 w-full" disabled={busy || !email || !password}>
+            {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Sign in
+          </Button>
+        </form>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Judges' demo login: demo@brightleaf.health / BrightleafDemo2026!
+        </p>
+      </main>
+      <Footer />
+    </div>
+  );
+}
