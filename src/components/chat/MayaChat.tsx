@@ -306,7 +306,7 @@ export function MayaChat({
             <div className="space-y-4">
               <div className="flex gap-3">
                 <MayaAvatar />
-                <p className="pt-1.5">
+                <p className="pt-1.5 text-[15px]">
                   Hi, I'm Maya. I can book a visit, answer questions about the clinic, or pass a
                   message to the team. How can I help?
                 </p>
@@ -329,7 +329,7 @@ export function MayaChat({
             <div key={m.id} className={m.role === "assistant" ? "flex gap-3" : ""}>
               {m.role === "assistant" && <MayaAvatar />}
               <Message from={m.role}>
-                <MessageContent className="text-base group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground">
+                <MessageContent className="text-[15px] group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground">
                   <Parts m={m} onPick={(s) => send(`Book the ${s.label} slot`)} />
                 </MessageContent>
               </Message>
@@ -375,7 +375,7 @@ export function MayaChat({
             placeholder="Type your message…"
             value={input}
             onChange={(e) => setInput(e.currentTarget.value)}
-            className="text-base"
+            className="text-[15px]"
           />
           <PromptInputFooter className="items-center gap-1">
             <VoicePanel
