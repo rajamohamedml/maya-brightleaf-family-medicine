@@ -190,3 +190,23 @@ export async function findPatient(dob: string, phone: string) {
     .maybeSingle();
   return data;
 }
+
+export type BlockConflict = { id: string; label: string; start_at: string };
+/** Slot-blocking visits that overlap [startIso, endIso), counting the 5-minute buffer after each visit. */
+export async function findBlockConflicts(sb: any, startIso: string, endIso: string): Promise<BlockConflict[]> {
+  const bufferedStart = new Date(new Date(startIso).getTime() - BUFFER_MIN * 60_000).toISOString();
+  const { data, error } = await sb
+    .from("appointments")
+    .select("id,start_at,visit_types(name),patients(first_name,last_name)")
+    .in("status", [...BLOCKING_STATUSES])
+    .lt("start_at", endIso)
+    .gt("end_at", bufferedStart)
+    .order("start_at");
+  if (error) throw error;
+  const { fmtDay, fmtTime } = await import("./tz");
+  return (data ?? []).map((a: any) => ({
+    id: a.id,
+    start_at: a.start_at,
+    label: `${a.patients?.first_name ?? "Patient"} ${a.patients?.last_name?.[0] ?? ""}. · ${a.visit_types?.name ?? "Visit"} · ${fmtDay(a.start_at).split(",")[0]} ${fmtTime(a.start_at)}`,
+  }));
+}
