@@ -4,7 +4,7 @@ export type VisitMode = "in_person" | "telehealth";
 export const CLINIC = {
   name: "Brightleaf Family Medicine",
   doctor: "Dr. Aisha Rahman, MD",
-  address: "5221 N O'Connor Blvd, Las Colinas, Irving, TX 75039",
+  address: "100 Brightleaf Way, Irving, TX 75039 (fictional)",
   phone: "(214) 555-0100",
 };
 
@@ -20,7 +20,7 @@ export const VISIT_TYPES: { code: string; name: string; minutes: number; modes: 
 export const INSURERS = ["Aetna", "Blue Cross Blue Shield of Texas", "UnitedHealthcare", "Cigna", "Medicare", "Self-pay"];
 
 export const HOURS = [
-  { days: "Monday – Thursday", time: "8:00 AM – 5:00 PM" },
-  { days: "Friday", time: "8:00 AM – 3:00 PM" },
-  { days: "Saturday – Sunday", time: "Closed" },
+  { days: "Mon–Thu", time: "8:00 AM – 5:00 PM" },
+  { days: "Fri", time: "8:00 AM – 3:00 PM" },
+  { days: "Sat–Sun", time: "Closed" },
 ];
