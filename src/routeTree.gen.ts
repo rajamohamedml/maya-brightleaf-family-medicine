@@ -15,6 +15,7 @@ import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ClinicRouteImport } from './routes/clinic'
 import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as GuideRouteImport } from './routes/guide'
+import { Route as WatchRouteImport } from './routes/watch'
 import { Route as ApiMayaChatRouteImport } from './routes/api/maya-chat'
 import { Route as ClinicIndexRouteImport } from './routes/clinic.index'
 import { Route as ClinicActivityRouteImport } from './routes/clinic.activity'
@@ -54,6 +55,11 @@ const FeedbackRoute = FeedbackRouteImport.update({
 const GuideRoute = GuideRouteImport.update({
   id: '/guide',
   path: '/guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WatchRoute = WatchRouteImport.update({
+  id: '/watch',
+  path: '/watch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMayaChatRoute = ApiMayaChatRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/clinic': typeof ClinicRouteWithChildren
   '/feedback': typeof FeedbackRoute
   '/guide': typeof GuideRoute
+  '/watch': typeof WatchRoute
   '/api/maya-chat': typeof ApiMayaChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/feedback': typeof FeedbackRoute
   '/guide': typeof GuideRoute
+  '/watch': typeof WatchRoute
   '/api/maya-chat': typeof ApiMayaChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/clinic': typeof ClinicRouteWithChildren
   '/feedback': typeof FeedbackRoute
   '/guide': typeof GuideRoute
+  '/watch': typeof WatchRoute
   '/api/maya-chat': typeof ApiMayaChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/clinic'
     | '/feedback'
     | '/guide'
+    | '/watch'
     | '/api/maya-chat'
     | '/clinic/activity'
     | '/clinic/inbox'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/feedback'
     | '/guide'
+    | '/watch'
     | '/api/maya-chat'
     | '/clinic/activity'
     | '/clinic/inbox'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/clinic'
     | '/feedback'
     | '/guide'
+    | '/watch'
     | '/api/maya-chat'
     | '/clinic/activity'
     | '/clinic/inbox'
@@ -225,6 +237,7 @@ export interface RootRouteChildren {
   ClinicRoute: typeof ClinicRouteWithChildren
   FeedbackRoute: typeof FeedbackRoute
   GuideRoute: typeof GuideRoute
+  WatchRoute: typeof WatchRoute
   ApiMayaChatRoute: typeof ApiMayaChatRoute
   IntakeTokenRoute: typeof IntakeTokenRoute
   VisitTokenRoute: typeof VisitTokenRoute
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       path: '/guide'
       fullPath: '/guide'
       preLoaderRoute: typeof GuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/watch': {
+      id: '/watch'
+      path: '/watch'
+      fullPath: '/watch'
+      preLoaderRoute: typeof WatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/maya-chat': {
@@ -375,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClinicRoute: ClinicRouteWithChildren,
   FeedbackRoute: FeedbackRoute,
   GuideRoute: GuideRoute,
+  WatchRoute: WatchRoute,
   ApiMayaChatRoute: ApiMayaChatRoute,
   IntakeTokenRoute: IntakeTokenRoute,
   VisitTokenRoute: VisitTokenRoute,
