@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { staffAccessQuery } from "@/lib/staff-access";
 
 export const Route = createFileRoute("/clinic/login")({
   head: () => ({
@@ -22,6 +24,7 @@ export const Route = createFileRoute("/clinic/login")({
 
 function Login() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -32,8 +35,17 @@ function Login() {
     setError("");
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setBusy(false);
-    if (error) return setError("That email or password didn't work. Check them and try again.");
+    if (error) {
+      setBusy(false);
+      return setError("That email or password didn't work. Check them and try again.");
+    }
+    // Resolve the staff role before leaving, so /clinic renders its final state immediately.
+    try {
+      qc.removeQueries({ queryKey: staffAccessQuery.queryKey });
+      await qc.fetchQuery(staffAccessQuery);
+    } catch {
+      /* the layout will retry the check */
+    }
     navigate({ to: "/clinic", replace: true });
   }
 
