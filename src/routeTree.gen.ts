@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ClinicRouteImport } from './routes/clinic'
+import { Route as ApiMayaChatRouteImport } from './routes/api/maya-chat'
 import { Route as ClinicIndexRouteImport } from './routes/clinic.index'
 import { Route as ClinicActivityRouteImport } from './routes/clinic.activity'
 import { Route as ClinicInboxRouteImport } from './routes/clinic.inbox'
@@ -41,6 +42,11 @@ const ChatRoute = ChatRouteImport.update({
 const ClinicRoute = ClinicRouteImport.update({
   id: '/clinic',
   path: '/clinic',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMayaChatRoute = ApiMayaChatRouteImport.update({
+  id: '/api/maya-chat',
+  path: '/api/maya-chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClinicIndexRoute = ClinicIndexRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/book': typeof BookRoute
   '/chat': typeof ChatRoute
   '/clinic': typeof ClinicRouteWithChildren
+  '/api/maya-chat': typeof ApiMayaChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
   '/clinic/login': typeof ClinicLoginRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/book': typeof BookRoute
   '/chat': typeof ChatRoute
+  '/api/maya-chat': typeof ApiMayaChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
   '/clinic/login': typeof ClinicLoginRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/book': typeof BookRoute
   '/chat': typeof ChatRoute
   '/clinic': typeof ClinicRouteWithChildren
+  '/api/maya-chat': typeof ApiMayaChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
   '/clinic/login': typeof ClinicLoginRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/chat'
     | '/clinic'
+    | '/api/maya-chat'
     | '/clinic/activity'
     | '/clinic/inbox'
     | '/clinic/login'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/'
     | '/book'
     | '/chat'
+    | '/api/maya-chat'
     | '/clinic/activity'
     | '/clinic/inbox'
     | '/clinic/login'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/book'
     | '/chat'
     | '/clinic'
+    | '/api/maya-chat'
     | '/clinic/activity'
     | '/clinic/inbox'
     | '/clinic/login'
@@ -187,6 +199,7 @@ export interface RootRouteChildren {
   BookRoute: typeof BookRoute
   ChatRoute: typeof ChatRoute
   ClinicRoute: typeof ClinicRouteWithChildren
+  ApiMayaChatRoute: typeof ApiMayaChatRoute
   IntakeTokenRoute: typeof IntakeTokenRoute
   VisitTokenRoute: typeof VisitTokenRoute
   VisitOfferIdRoute: typeof VisitOfferIdRoute
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       path: '/clinic'
       fullPath: '/clinic'
       preLoaderRoute: typeof ClinicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/maya-chat': {
+      id: '/api/maya-chat'
+      path: '/api/maya-chat'
+      fullPath: '/api/maya-chat'
+      preLoaderRoute: typeof ApiMayaChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clinic/': {
@@ -313,6 +333,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookRoute: BookRoute,
   ChatRoute: ChatRoute,
   ClinicRoute: ClinicRouteWithChildren,
+  ApiMayaChatRoute: ApiMayaChatRoute,
   IntakeTokenRoute: IntakeTokenRoute,
   VisitTokenRoute: VisitTokenRoute,
   VisitOfferIdRoute: VisitOfferIdRoute,
