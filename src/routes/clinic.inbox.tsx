@@ -2,12 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, Check, CheckCircle2, Clock, Hourglass, ListTodo, Loader2, Phone, UserRoundX } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Check, CheckCircle2, Clock, Hourglass, Info, ListTodo, Loader2, Phone, UserRoundX } from "lucide-react";
 import { getInbox, markTaskDone } from "@/lib/staff.functions";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
 import { EmptyState } from "@/components/maya/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { fmtSlot } from "@/lib/tz";
 import type { ReactNode } from "react";
 
@@ -99,6 +101,42 @@ function InboxPage() {
   );
 }
 
+const TAB_INFO: Record<string, string> = {
+  needs: "Only the things Maya can't handle on her own: callback requests and visits released because the patient didn't reconfirm. If this is empty, nothing needs you.",
+  tasks: "Non-booking requests Maya collected for the team: prescription refills, medical records and billing questions. The patient has already been told we'll reply within 1 business day. Mark done when handled.",
+  waitlist: "Patients waiting for an earlier time. When a visit is cancelled or released, Maya automatically offers it to the first matching person, who has 30 minutes to accept before it passes to the next.",
+  leads: "People who started booking but didn't finish. Maya sends one friendly nudge with 3 open times after 2 hours, and the lead disappears once they book.",
+};
+
+function TabInfo({ tab }: { tab: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={`What is ${tab}?`}
+            className="-mr-1 inline-flex h-11 w-9 cursor-pointer items-center justify-center text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            onClick={(e) => { e.preventDefault(); setOpen((o) => !o); }}
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((o) => !o); } }}
+          >
+            <Info className="h-4 w-4" aria-hidden="true" />
+          </span>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-72 text-sm leading-relaxed text-muted-foreground sm:w-80">
+          {TAB_INFO[tab]}
+        </PopoverContent>
+      </Popover>
+    </span>
+  );
+}
+
 function InboxTabs({ d }: { d: Awaited<ReturnType<typeof getInbox>> }) {
   const needs = d.needs.callbacks.length + d.needs.released.length;
   const tabs = [
@@ -114,6 +152,7 @@ function InboxTabs({ d }: { d: Awaited<ReturnType<typeof getInbox>> }) {
           <TabsTrigger key={t.v} value={t.v} className="min-h-11 gap-2">
             {t.label}
             <span className={t.n ? "rounded-full bg-cta px-1.5 text-sm font-semibold text-cta-foreground" : "text-sm text-muted-foreground"}>{t.n}</span>
+            <TabInfo tab={t.v} />
           </TabsTrigger>
         ))}
       </TabsList>
