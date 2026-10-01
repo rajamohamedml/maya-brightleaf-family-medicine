@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlayCircle } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Home, PlayCircle } from "lucide-react";
 
 export const Route = createFileRoute("/watch")({
   head: () => ({
@@ -18,7 +19,15 @@ export const Route = createFileRoute("/watch")({
 function WatchPage() {
   return (
     <div className="mx-auto w-full max-w-[1100px] px-4 py-10">
-      <h1 className="text-3xl font-semibold tracking-tight">Watch the demo</h1>
+      <Link
+        to="/"
+        aria-label="Back to home"
+        className="inline-flex min-h-11 items-center gap-2 rounded-lg text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <Home className="h-5 w-5" aria-hidden="true" />
+        <span className="text-sm font-semibold">Home</span>
+      </Link>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight">Watch the demo</h1>
       <p className="mt-2 text-muted-foreground">A quick tour of booking a visit and using the clinic dashboard.</p>
       <div className="mt-8 flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card text-center">
         <PlayCircle className="h-16 w-16 text-primary" aria-hidden="true" />
