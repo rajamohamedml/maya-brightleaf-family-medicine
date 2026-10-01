@@ -36,16 +36,17 @@ export function toSpeech(text: string): string {
     .trim();
 }
 
-// Gentle, warm female voices first (Samantha on Apple devices, Natural voices on
-// Windows), then any soft English voice. Known-harsh voices are skipped.
+// Bright, friendly female voices first (Aria/Jenny/Ava on Windows and Edge,
+// Natural and Google voices), then warmer ones (Samantha) and any soft English
+// voice. Known-harsh voices are skipped.
 const GENTLE_ORDER: RegExp[] = [
-  /Samantha/i,
-  /Ava/i,
   /Aria/i,
   /Jenny/i,
+  /Ava/i,
+  /Natural/i,
   /Google US English/i,
   /(Michelle|Serena|Vanessa|Kathy|Zira|Libby|Nova|Sonoma|Allison|Sandy|Shelley)/i,
-  /Natural/i,
+  /Samantha/i,
   /Female/i,
 ];
 const HARSH = /\b(David|Mark|Fred|Male|James|Richard|George|Daniel)\b/i;
