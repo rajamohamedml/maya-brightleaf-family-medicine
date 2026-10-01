@@ -96,7 +96,7 @@ function Landing() {
             </span>
           </p>
           <div className="mt-6">
-            <Link to="/book" className={`${btn} bg-cta text-cta-foreground hover:bg-cta/90`}>
+            <Link to="/book" className={`${btn} bg-primary text-primary-foreground hover:bg-primary/90`}>
               <CalendarCheck className="h-5 w-5" aria-hidden="true" /> Book a visit
             </Link>
           </div>
