@@ -60,6 +60,7 @@ export function VoicePanel({
   handsFreeRef.current = handsFree;
 
   useEffect(() => {
+    ended.current = false;
     setSupported(!!getRecCtor() && "speechSynthesis" in window);
     setConsented(localStorage.getItem(CONSENT_KEY) === "1");
     window.speechSynthesis?.getVoices();
