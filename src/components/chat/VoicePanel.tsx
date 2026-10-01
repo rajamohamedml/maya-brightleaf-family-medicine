@@ -12,6 +12,8 @@ const SILENCE_MS = 1500;
 export const VOICE_GREETING =
   "Welcome to Brightleaf Family Medicine. I'm Maya, your anytime front desk assistant. How can I help you today?";
 const BOOKING_CLOSING = "At Brightleaf Family Medicine, your well-being is our sole purpose";
+export const VOICE_FAREWELL =
+  "It was a pleasure talking to you, have a nice day! Take care and thank you for contacting Brightleaf Family Medicine!";
 
 type Rec = {
   lang: string;
@@ -219,7 +221,11 @@ export function VoicePanel({
     const last = messages.at(-1);
     const responseText = last?.role === "assistant" ? replyText(last) : "";
     const text = last?.role === "assistant"
-      ? toSpeech(`${responseText}${hasBooking(last) ? `. ${BOOKING_CLOSING}` : ""}`)
+      ? toSpeech(
+          `${responseText}${hasBooking(last) ? `. ${BOOKING_CLOSING}` : ""}${
+            hasBooking(last) ? ` ${VOICE_FAREWELL}` : ""
+          }`,
+        )
       : "";
     if (!text) {
       setState("idle");
@@ -267,9 +273,21 @@ export function VoicePanel({
     speakToken.current++;
     recRef.current?.abort();
     recRef.current = null;
-    window.speechSynthesis?.cancel();
     setState("idle");
     onEnd();
+    // Say goodbye out loud, with the same gentle voice Maya already uses.
+    const speech = window.speechSynthesis;
+    if (!speech) return;
+    void waitForVoices().then(() => {
+      const u = new SpeechSynthesisUtterance(VOICE_FAREWELL);
+      u.lang = "en-US";
+      u.rate = 0.88;
+      u.pitch = 1.18;
+      const v = pickVoice();
+      if (v) u.voice = v;
+      speech.cancel();
+      speech.speak(u);
+    });
   };
 
   if (!supported || denied)

@@ -34,7 +34,7 @@ import { addVisitToCalendar } from "@/components/booking/VisitCard";
 import { createTask } from "@/lib/booking.functions";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
 import { fmtLongDay, fmtTime } from "@/lib/tz";
-import { VoicePanel, VOICE_GREETING } from "./VoicePanel";
+import { VoicePanel, VOICE_FAREWELL, VOICE_GREETING } from "./VoicePanel";
 
 const STARTERS = [
   "I'm new and need a physical",
@@ -43,9 +43,6 @@ const STARTERS = [
   "Request a refill",
   "Do you take Aetna?",
 ];
-
-const VOICE_FAREWELL =
-  "Have a nice day! Take care and thank you for contacting Brightleaf Family Medicine!";
 
 type Slot = { start_at: string; end_at: string; label: string };
 type Booked = {
