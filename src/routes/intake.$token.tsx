@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { CalendarX2, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, CalendarX2, CheckCircle2, Loader2 } from "lucide-react";
 import { PageShell } from "@/components/maya/PageShell";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
 import { EmptyState } from "@/components/maya/EmptyState";
@@ -91,7 +91,16 @@ function IntakePage() {
 
   return (
     <PageShell title="Intake form" intro={`${v.visit_name} · ${fmtSlot(v.start_at)}. Takes about 2 minutes.`}>
-      <form onSubmit={onSubmit} noValidate className="mx-auto max-w-xl space-y-5">
+      <div className="mx-auto max-w-xl">
+        <Link
+          to="/visit/$token"
+          params={{ token }}
+          className="inline-flex min-h-11 items-center gap-2 font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to my visit
+        </Link>
+      </div>
+      <form onSubmit={onSubmit} noValidate className="mx-auto mt-4 max-w-xl space-y-5">
         <Field id="i-address" label="Home address" autoComplete="street-address" value={f.address} error={e.address} onChange={(ev) => setF({ ...f, address: ev.target.value })} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field id="i-ename" label="Emergency contact name" value={f.emergency_name} error={e.emergency_name} onChange={(ev) => setF({ ...f, emergency_name: ev.target.value })} />
