@@ -27,6 +27,8 @@ export const Route = createFileRoute("/clinic/schedule")({
       { name: "description", content: "The clinic's week at a glance." },
       { property: "og:title", content: "Schedule — Brightleaf staff" },
       { property: "og:description", content: "The clinic's week at a glance." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Schedule,
@@ -69,30 +71,33 @@ function Schedule() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto text-2xl font-semibold">Schedule</h1>
-        <Button variant={panel === "block" ? "secondary" : "outline"} className="min-h-11" onClick={() => setPanel(panel === "block" ? "none" : "block")}>
-          <Ban className="h-4 w-4" aria-hidden="true" /> Block time
-        </Button>
-        <Button variant={panel === "visit" ? "secondary" : "cta"} className="min-h-11" onClick={() => setPanel(panel === "visit" ? "none" : "visit")}>
-          <Plus className="h-4 w-4" aria-hidden="true" /> Add visit
-        </Button>
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <h1 className="min-w-0 text-2xl font-semibold">Schedule</h1>
+
+        <div className="flex min-w-0 items-center gap-2 sm:col-span-2 xl:col-span-1">
+          <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label="Previous week" disabled={!w} onClick={() => w && setMonday(addDays(w.monday, -7))}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <p className="min-w-0 flex-1 px-1 text-center font-semibold xl:min-w-64" aria-live="polite">
+            {w ? `Week of ${fmtLongDay(zonedToUtc(w.monday, 720).toISOString())}` : "Loading week…"}
+          </p>
+          <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label="Next week" disabled={!w} onClick={() => w && setMonday(addDays(w.monday, 7))}>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2 sm:col-start-2 sm:row-start-1 sm:justify-self-end xl:col-start-3">
+          <Button variant={panel === "block" ? "secondary" : "outline"} className="min-h-11" onClick={() => setPanel(panel === "block" ? "none" : "block")}>
+            <Ban className="h-4 w-4" aria-hidden="true" /> Block time
+          </Button>
+          <Button variant={panel === "visit" ? "secondary" : "cta"} className="min-h-11" onClick={() => setPanel(panel === "visit" ? "none" : "visit")}>
+            <Plus className="h-4 w-4" aria-hidden="true" /> Add visit
+          </Button>
+        </div>
       </div>
 
       {w && panel === "block" && <BlockForm days={days} onDone={() => setPanel("none")} />}
       {panel === "visit" && <AddVisitForm onDone={() => setPanel("none")} />}
-
-      <div className="mt-4 flex items-center gap-2">
-        <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Previous week" disabled={!w} onClick={() => w && setMonday(addDays(w.monday, -7))}>
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <p className="min-w-0 flex-1 text-center font-semibold" aria-live="polite">
-          {w ? `Week of ${fmtLongDay(zonedToUtc(w.monday, 720).toISOString())}` : "Loading week…"}
-        </p>
-        <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Next week" disabled={!w} onClick={() => w && setMonday(addDays(w.monday, 7))}>
-          <ChevronRight className="h-5 w-5" />
-        </Button>
-      </div>
 
       {q.isLoading ? (
         <div className="mt-4"><LoadingSkeleton rows={6} /></div>
@@ -103,8 +108,8 @@ function Schedule() {
           </EmptyState>
         </div>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-xl border border-border">
-          <div className="grid min-w-[720px]" style={{ gridTemplateColumns: "64px repeat(5, 1fr)" }}>
+        <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card/20">
+          <div className="grid min-w-[860px]" style={{ gridTemplateColumns: "68px repeat(5, minmax(150px, 1fr))" }}>
             <div className="sticky left-0 z-10 border-b border-border bg-background" />
             {days.map((d) => (
               <div key={d} className={cn("border-b border-l border-border px-2 py-2 text-center text-sm font-semibold", d === w.today && "text-primary")}>

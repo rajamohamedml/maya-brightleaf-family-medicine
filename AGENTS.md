@@ -13,7 +13,7 @@
 - Demo reset: SQL `public.seed_demo()` (service role only), called only by staff-checked `resetDemo` — one idempotent reset point.
 - Public clinic facts: `src/lib/clinic-info.ts` — anon has no table access.
 - Shared UI in `src/components/maya/`; token dark theme in `src/styles.css` (cta coral, primary teal) — one accessible system.
-- `/clinic` layout route: desktop left nav, mobile bottom tabs.
+- `/clinic` layout route: full-width workspace with one horizontal, scrollable staff navigation row on all screen sizes.
 - Slot math only in `src/lib/scheduling.server.ts`; patient actions via zod server fns in `src/lib/booking.functions.ts` — one scheduling brain; DB exclusion constraint is the final double-booking guard.
 - Clinic time via `src/lib/tz.ts` (Intl, America/Chicago) — no date library.
 - Staff data via `src/lib/staff.functions.ts` (auth + has_role 'staff') plus staff-only RLS — two guards.
