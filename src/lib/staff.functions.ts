@@ -321,23 +321,31 @@ export const getActivity = createServerFn({ method: "POST" })
     ]);
     for (const r of [runs, feed, outbox]) if (r.error) throw r.error;
     const all = runs.data as { rule: string; minutes_saved: number; run_at: string; details: any }[];
+    const inRange = (from: string, f: (r: (typeof all)[number]) => boolean) =>
+      all.filter((r) => r.run_at >= from && f(r)).length;
+    const isBooked = (r: (typeof all)[number]) => r.rule === "self_service_booking";
+    const isRefilled = (r: (typeof all)[number]) => r.rule === "waitlist_refill" && r.details?.action === "accepted";
+    const isReleased = (r: (typeof all)[number]) => r.rule === "confirm_or_release" && r.details?.action === "released";
+    const isTask = (r: (typeof all)[number]) => r.rule === "task_routing";
+    const isBookedOrRefilled = (r: (typeof all)[number]) => isBooked(r) || isRefilled(r);
+    const isNoShowPrevented = (r: (typeof all)[number]) => isReleased(r) || isRefilled(r);
+    const isCallAvoided = (r: (typeof all)[number]) => isBooked(r) || isRefilled(r) || isTask(r);
     const sum = (from: string) => all.filter((r) => r.run_at >= from).reduce((t, r) => t + r.minutes_saved, 0);
-    const n = (f: (r: (typeof all)[number]) => boolean) => all.filter(f).length;
-    const booked = n((r) => r.rule === "self_service_booking");
-    const refilled = n((r) => r.rule === "waitlist_refill" && r.details?.action === "accepted");
-    const released = n((r) => r.rule === "confirm_or_release" && r.details?.action === "released");
-    const tasks = n((r) => r.rule === "task_routing");
     return {
       now: now.toISOString(),
       simulated,
       impact: {
         minutes_today: sum(dayStart),
         minutes_week: sum(weekAgo),
-        booked_without_staff: booked + refilled,
-        no_shows_prevented: released + refilled,
-        released,
-        refilled,
-        calls_avoided: booked + refilled + tasks,
+        booked_without_staff: inRange(dayStart, isBookedOrRefilled),
+        booked_without_staff_week: inRange(weekAgo, isBookedOrRefilled),
+        no_shows_prevented: inRange(dayStart, isNoShowPrevented),
+        no_shows_prevented_week: inRange(weekAgo, isNoShowPrevented),
+        released: inRange(dayStart, isReleased),
+        refilled: inRange(dayStart, isRefilled),
+        refilled_week: inRange(weekAgo, isRefilled),
+        calls_avoided: inRange(dayStart, isCallAvoided),
+        calls_avoided_week: inRange(weekAgo, isCallAvoided),
       },
       feed: feed.data as any[],
       outbox: outbox.data as any[],
