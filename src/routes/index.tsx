@@ -133,13 +133,13 @@ function Landing() {
         <h2 id="vt" className="text-xl font-semibold">
           Visit types
         </h2>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
           {VISIT_TYPES.map((v, index) => (
             <li
               key={v.code}
               className={`${VISIT_TINTS[index]} rounded-xl border border-border bg-card p-4 transition-colors duration-200 hover:border-surface-hover`}
             >
-              <p className="font-semibold">{v.name}</p>
+              <p className="text-[15px] font-semibold">{v.name}</p>
               <p className="text-sm text-muted-foreground">{v.note}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-sm">
                 <span className="inline-flex items-center gap-1">
@@ -162,13 +162,13 @@ function Landing() {
         </ul>
       </section>
 
-      <section className="mt-10 grid gap-4 md:grid-cols-3">
+      <section className="mt-10 grid gap-4 sm:grid-cols-2">
         <div className="surface-tile rounded-xl border border-border p-5 transition-colors duration-200 hover:border-surface-hover">
-          <h2 className="flex items-center gap-2 font-semibold">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold">
             <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
             Insurance we take
           </h2>
-          <ul className="mt-3 space-y-1">
+          <ul className="mt-3 space-y-1 text-sm">
             {INSURERS.map((i) => (
               <li key={i} className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-success" aria-hidden="true" />
@@ -185,11 +185,11 @@ function Landing() {
           </p>
         </div>
         <div className="surface-tile rounded-xl border border-border p-5 transition-colors duration-200 hover:border-surface-hover">
-          <h2 className="flex items-center gap-2 font-semibold">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold">
             <Clock className="h-5 w-5 text-primary" aria-hidden="true" />
             Hours
           </h2>
-          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
             {HOURS.map((h) => (
               <div key={h.days} className="contents">
                 <dt>{h.days}</dt>
