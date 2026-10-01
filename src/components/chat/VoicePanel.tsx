@@ -104,6 +104,9 @@ export function VoicePanel({
   onIdlePrompt,
   onIdleClose,
   skipGreeting = false,
+  showClear = false,
+  clearDisabled = false,
+  onClear,
 }: {
   messages: UIMessage[];
   busy: boolean;
@@ -117,6 +120,10 @@ export function VoicePanel({
   onIdlePrompt?: (text: string) => void;
   onIdleClose?: () => void;
   skipGreeting?: boolean;
+  /** "Clear conversation" control, rendered beside Keep listening. */
+  showClear?: boolean;
+  clearDisabled?: boolean;
+  onClear?: () => void;
 }) {
   const [supported, setSupported] = useState(true);
   const [denied, setDenied] = useState(false);
@@ -587,6 +594,16 @@ export function VoicePanel({
           />
           Keep listening
         </label>
+      )}
+      {showClear && onClear && (
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={clearDisabled}
+          className="min-h-11 shrink-0 px-2 text-xs text-muted-foreground underline-offset-4 hover:text-primary hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Clear conversation
+        </button>
       )}
       {state === "speaking" && (
         <Button type="button" size="sm" variant="ghost" onClick={interrupt} className="min-h-11 text-primary">
