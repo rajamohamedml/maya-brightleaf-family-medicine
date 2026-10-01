@@ -102,6 +102,39 @@ export async function refillSlot(startAt: string, visitCode: string, now: Date, 
   return null;
 }
 
+/** Shared by cancel, reschedule, decline and release: offer the freed time and log it in the activity feed. */
+export async function refillFreedSlot(startAt: string, visitCode: string, what: string, now: Date, base: string): Promise<string | null> {
+  const offered = await refillSlot(startAt, visitCode, now, base);
+  await logRun("waitlist_refill", 0, now, {
+    action: offered ? "offered" : "freed",
+    text: `${what}${offered ? ` — offered the time to ${offered} from the waitlist.` : ". No waitlist match."}`,
+  });
+  return offered;
+}
+
+/** Safety net: any future cancelled/released visit whose time was never offered gets offered now. */
+async function sweepFreedSlots(now: Date, base: string, s: RunSummary) {
+  const { data } = await db()
+    .from("appointments")
+    .select("start_at,status,visit_types(code,name),patients(first_name,last_name)")
+    .in("status", ["cancelled", "released"])
+    .gt("start_at", now.toISOString())
+    .order("start_at");
+  for (const a of data ?? []) {
+    const code = a.visit_types?.code;
+    if (!code) continue;
+    const { count } = await db().from("waitlist").select("id", { count: "exact", head: true }).eq("offered_start_at", a.start_at);
+    if (count) continue;
+    const offered = await refillSlot(a.start_at, code, now, base);
+    if (!offered) continue;
+    s.offers++;
+    await logRun("waitlist_refill", 0, now, {
+      action: "offered",
+      text: `Offered the freed ${fmtSlot(a.start_at)} ${a.visit_types?.name ?? "visit"} (was ${a.patients?.first_name ?? ""} ${a.patients?.last_name ?? ""}) to ${offered} from the waitlist.`.replace("  ", " "),
+    });
+  }
+}
+
 async function expireOffers(now: Date, base: string, s: RunSummary) {
   const { data } = await db()
     .from("waitlist")
@@ -282,7 +315,8 @@ async function recalls(now: Date, base: string, s: RunSummary) {
 }
 
 async function taskReplies(now: Date, s: RunSummary) {
-  const { data: tasks } = await db().from("tasks").select("id,kind,patient_id,contact_name,contact_phone,created_at").eq("status", "open");
+  // Auto-replies are only useful promptly; older open tasks are already in Jen's hands.
+  const { data: tasks } = await db().from("tasks").select("id,kind,patient_id,contact_name,contact_phone,created_at").eq("status", "open").gte("created_at", new Date(now.getTime() - 24 * H).toISOString());
   const labels: Record<string, string> = { refill: "refill request", records: "records request", billing: "billing question", callback: "callback request" };
   for (const t of tasks ?? []) {
     if (!t.contact_phone) continue;
@@ -302,6 +336,7 @@ export async function runAutomations(now: Date, base: string): Promise<RunSummar
   const s = empty();
   await expireOffers(now, base, s);
   await appointmentRules(now, base, s);
+  await sweepFreedSlots(now, base, s);
   await sickOpening(now, base, s);
   await leadNudges(now, base, s);
   await recalls(now, base, s);
