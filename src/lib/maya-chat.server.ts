@@ -158,6 +158,17 @@ export async function handleMayaChat(request: Request): Promise<Response> {
     include: ["reasoning.encrypted_content"],
   };
 
+  // After an emergency was already handled, red-flag words in the newest message are
+  // classified against just that message: a current emergency repeats the 911 reply,
+  // a clarification ("my dad had chest pain last year") lets Maya continue helping.
+  let clarifiedNonEmergency = false;
+  if (emergencyAlreadyHandled && keywordEmergency(latestUser)) {
+    if (latestUser.trim() && (await screenEmergencyText(provider, latestUser, reasoning))) {
+      return emergencyResponse();
+    }
+    clarifiedNonEmergency = true;
+  }
+
   const now = await getNow();
   const today = localDateStr(now);
   const base = resolveAppUrl(request);
