@@ -66,7 +66,7 @@ function IntakePage() {
   }
 
   if (q.isLoading) return <PageShell title="Intake form"><LoadingSkeleton rows={4} /></PageShell>;
-  if (q.isError || !q.data || "error" in q.data)
+  if (q.isError || !q.data || !("visit" in q.data) || !q.data.visit)
     return <PageShell title="Intake form"><EmptyState icon={CalendarX2} title="Visit not found">Please check your link.</EmptyState></PageShell>;
   const v = q.data.visit;
 

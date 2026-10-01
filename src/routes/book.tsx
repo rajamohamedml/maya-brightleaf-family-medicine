@@ -508,7 +508,7 @@ function ActionBar({ children }: { children: ReactNode }) {
   return <div className="mt-6">{children}</div>;
 }
 
-function FormError({ msg }: { msg?: string }) {
+function FormError({ msg }: { msg?: string | undefined }) {
   if (!msg) return null;
   return <p role="alert" className="mt-4 rounded-lg border border-warning p-3 text-warning">{msg}</p>;
 }

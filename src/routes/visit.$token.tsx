@@ -73,9 +73,9 @@ function VisitPage() {
   let body;
   if (q.isLoading) body = <LoadingSkeleton rows={3} />;
   else if (q.isError) body = <EmptyState icon={CalendarX2} title="We couldn't load your visit"><Button variant="outline" className="mt-3" onClick={() => q.refetch()}>Try again</Button></EmptyState>;
-  else if ("error" in q.data!) body = <EmptyState icon={CalendarX2} title="Visit not found">{q.data.message}</EmptyState>;
+  else if (!q.data || !("visit" in q.data) || !q.data.visit) body = <EmptyState icon={CalendarX2} title="Visit not found">{q.data && "message" in q.data ? q.data.message : null}</EmptyState>;
   else {
-    const v = q.data!.visit;
+    const v = q.data.visit;
     const visit = { name: v.visit_name, start_at: v.start_at, end_at: v.end_at, mode: v.mode, status: v.status };
     body = (
       <div className="mx-auto max-w-xl space-y-5" aria-live="polite">
@@ -135,6 +135,6 @@ function VisitPage() {
     );
   }
 
-  const name = q.data && !("error" in q.data) ? q.data.visit.first_name : "";
+  const name = q.data && "visit" in q.data && q.data.visit ? q.data.visit.first_name : "";
   return <PageShell title={name ? `Hi ${name}, here's your visit` : "Your visit"}>{body}</PageShell>;
 }
