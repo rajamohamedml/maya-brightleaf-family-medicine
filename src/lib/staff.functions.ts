@@ -72,10 +72,15 @@ async function dayData(sb: any, date: string) {
 
 export const getToday = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) => z.object({ view: z.enum(["demo", "real"]).default("demo") }).parse(d ?? {}))
+  .handler(async ({ context, data: input }) => {
     await assertStaff(context);
     const sb = context.supabase;
-    const { now, hours } = await clinicNow(sb);
+    const clock = await clinicNow(sb);
+    const { data: st } = await sb.from("clinic_settings").select("demo_now").eq("id", 1).maybeSingle();
+    const simulated = st?.demo_now != null;
+    const now = input.view === "real" ? new Date() : clock.now;
+    const hours = clock.hours;
     const today = localDateStr(now);
     let tomorrow = addDays(today, 1);
     while (isoDow(tomorrow) > 5) tomorrow = addDays(tomorrow, 1);
@@ -91,6 +96,8 @@ export const getToday = createServerFn({ method: "POST" })
     const tFree = freeTime(tomorrow, hours, tLive, n.blocks);
     return {
       date: today,
+      simulated,
+      showing_demo: simulated && input.view === "demo",
       summary: {
         visits: live.length,
         reconfirmed_pct: pct(live.filter((a) => a.status !== "confirmed").length),

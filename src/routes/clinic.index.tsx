@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Building2, CalendarCheck, CheckCircle2, ClipboardCheck, ClipboardX, Clock, Loader2, MapPin, Sparkles, UserX, Video } from "lucide-react";
 import { getToday, setVisitStatus, bookRecall } from "@/lib/staff.functions";
@@ -60,9 +60,20 @@ function VisitTags({ v }: { v: Visit }) {
   );
 }
 
+const fmtDayHeading = (date: string) =>
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "long", month: "short", day: "numeric" }).format(zonedToUtc(date, 12 * 60));
+
 function Today() {
   const fetchToday = useServerFn(getToday);
-  const q = useQuery({ queryKey: ["staff", "today"], queryFn: () => fetchToday() });
+  const [view, setViewState] = useState<"demo" | "real">("demo");
+  useEffect(() => {
+    if (sessionStorage.getItem("today-view") === "real") setViewState("real");
+  }, []);
+  const setView = (v: "demo" | "real") => {
+    sessionStorage.setItem("today-view", v);
+    setViewState(v);
+  };
+  const q = useQuery({ queryKey: ["staff", "today", view], queryFn: () => fetchToday({ data: { view } }), refetchOnMount: "always" });
   const [openId, setOpenId] = useState<string | null>(null);
 
   if (q.isLoading) return <LoadingSkeleton rows={5} />;
@@ -78,8 +89,30 @@ function Today() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Today</h1>
-      <p className="text-muted-foreground">{fmtLongDay(zonedToUtc(d.date, 12 * 60).toISOString())}</p>
+      <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Today</p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h1 className="text-3xl font-semibold">{fmtDayHeading(d.date)}</h1>
+        {d.showing_demo && (
+          <>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/50 bg-warning/15 px-3 py-1 text-sm font-semibold text-warning">
+              <Clock className="h-4 w-4" aria-hidden="true" /> Demo day — simulated time
+            </span>
+            <Link to="/clinic/activity" className="inline-flex min-h-11 items-center text-sm text-primary underline-offset-4 hover:underline">
+              Change in Activity
+            </Link>
+          </>
+        )}
+        {d.simulated && (
+          <div role="group" aria-label="Which day to show" className="ml-auto inline-flex rounded-xl border border-border p-1">
+            {(["demo", "real"] as const).map((v) => (
+              <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
+                className={`min-h-11 rounded-lg px-4 text-sm font-semibold transition-colors duration-150 ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-primary"}`}>
+                {v === "demo" ? "Demo day" : "Real today"}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
         {[
