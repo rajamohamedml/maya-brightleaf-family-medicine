@@ -2,22 +2,45 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, CalendarPlus, CheckCircle2, ClipboardCheck, ClipboardList, Leaf, Loader2, Mic, Phone } from "lucide-react";
-
-const VoicePanel = lazy(() => import("./VoicePanel").then((m) => ({ default: m.VoicePanel })));
-import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import {
+  AlertTriangle,
+  CalendarPlus,
+  CheckCircle2,
+  ClipboardCheck,
+  ClipboardList,
+  Leaf,
+  Loader2,
+  Phone,
+} from "lucide-react";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
-import { PromptInput, PromptInputFooter, PromptInputSubmit, PromptInputTextarea } from "@/components/ai-elements/prompt-input";
+import {
+  PromptInput,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/booking/Field";
 import { addVisitToCalendar } from "@/components/booking/VisitCard";
 import { createTask } from "@/lib/booking.functions";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
 import { fmtLongDay, fmtTime } from "@/lib/tz";
+import { VoicePanel } from "./VoicePanel";
 
-const STARTERS = ["I'm new and need a physical", "I'm sick today", "Reschedule my visit", "Request a refill", "Do you take Aetna?"];
+const STARTERS = [
+  "I'm new and need a physical",
+  "I'm sick today",
+  "Reschedule my visit",
+  "Request a refill",
+  "Do you take Aetna?",
+];
 
 type Slot = { start_at: string; end_at: string; label: string };
 type Booked = {
@@ -29,7 +52,10 @@ type Booked = {
 
 function MayaAvatar() {
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-hidden="true">
+    <span
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+      aria-hidden="true"
+    >
       <Leaf className="h-5 w-5" />
     </span>
   );
@@ -42,7 +68,10 @@ function EmergencyCard() {
         <AlertTriangle className="h-5 w-5" aria-hidden="true" /> Emergency
       </p>
       <p className="mt-2 text-lg font-semibold">{EMERGENCY_MESSAGE}</p>
-      <a href="tel:911" className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-destructive px-4 font-semibold text-destructive-foreground">
+      <a
+        href="tel:911"
+        className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-destructive px-4 font-semibold text-destructive-foreground"
+      >
         <Phone className="h-4 w-4" aria-hidden="true" /> Call 911
       </a>
     </div>
@@ -60,9 +89,25 @@ function BookedCard({ b }: { b: Booked }) {
         {fmtLongDay(b.visit.start_at)} · {fmtTime(b.visit.start_at)} Central Time
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link to="/visit/$token" params={{ token: b.manage_url.split("/").pop() ?? "" }} className="inline-flex min-h-11 items-center rounded-xl bg-cta px-4 font-semibold text-cta-foreground hover:bg-cta/90">Manage visit</Link>
-        <Link to="/intake/$token" params={{ token: b.intake_url.split("/").pop() ?? "" }} className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent">Complete intake</Link>
-        <button type="button" onClick={() => addVisitToCalendar(b.visit)} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent">
+        <Link
+          to="/visit/$token"
+          params={{ token: b.manage_url.split("/").pop() ?? "" }}
+          className="inline-flex min-h-11 items-center rounded-xl bg-cta px-4 font-semibold text-cta-foreground hover:bg-cta/90"
+        >
+          Manage visit
+        </Link>
+        <Link
+          to="/intake/$token"
+          params={{ token: b.intake_url.split("/").pop() ?? "" }}
+          className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent"
+        >
+          Complete intake
+        </Link>
+        <button
+          type="button"
+          onClick={() => addVisitToCalendar(b.visit)}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent"
+        >
           <CalendarPlus className="h-4 w-4" aria-hidden="true" /> Add to calendar
         </button>
       </div>
@@ -86,14 +131,23 @@ function Parts({ m, onPick }: { m: UIMessage; onPick: (s: Slot) => void }) {
   return (
     <>
       {m.parts.map((p, i) => {
-        if (p.type === "text") return m.role === "user" ? <p key={i}>{p.text}</p> : <MessageResponse key={i}>{p.text}</MessageResponse>;
+        if (p.type === "text")
+          return m.role === "user" ? (
+            <p key={i}>{p.text}</p>
+          ) : (
+            <MessageResponse key={i}>{p.text}</MessageResponse>
+          );
         if (p.type === "data-emergency") return <EmergencyCard key={i} />;
         if (!p.type.startsWith("tool-")) return null;
         const t = p as { type: string; state: string; output?: any };
         if (t.state !== "output-available") {
           return t.state === "output-error" ? null : (
             <p key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> Checking…
+              <Loader2
+                className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />{" "}
+              Checking…
             </p>
           );
         }
@@ -115,7 +169,8 @@ function Parts({ m, onPick }: { m: UIMessage; onPick: (s: Slot) => void }) {
               ))}
             </div>
           );
-        if (t.type === "tool-book_appointment" && o?.ok) return <BookedCard key={i} b={o as Booked} />;
+        if (t.type === "tool-book_appointment" && o?.ok)
+          return <BookedCard key={i} b={o as Booked} />;
         if (t.type === "tool-create_task" && o?.ok) return <TaskCard key={i} kind={o.kind} />;
         return null;
       })}
@@ -148,17 +203,45 @@ function CallbackForm({ onDone }: { onDone: () => void }) {
     }
   };
   return (
-    <form onSubmit={submit} className="surface-tile mt-3 grid gap-3 rounded-xl border border-border p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-      <Field id="cb-name" label="Your name" value={name} onChange={(e) => setName(e.target.value)} error={errors["name"]} autoComplete="name" />
-      <Field id="cb-phone" label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} error={errors["phone"]} type="tel" autoComplete="tel" />
-      <Button type="submit" disabled={busy} className="min-h-11 bg-cta text-cta-foreground hover:bg-cta/90">
+    <form
+      onSubmit={submit}
+      className="surface-tile mt-3 grid gap-3 rounded-xl border border-border p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+    >
+      <Field
+        id="cb-name"
+        label="Your name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        error={errors["name"]}
+        autoComplete="name"
+      />
+      <Field
+        id="cb-phone"
+        label="Phone"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        error={errors["phone"]}
+        type="tel"
+        autoComplete="tel"
+      />
+      <Button
+        type="submit"
+        disabled={busy}
+        className="min-h-11 bg-cta text-cta-foreground hover:bg-cta/90"
+      >
         {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Request callback
       </Button>
     </form>
   );
 }
 
-export function MayaChat({ voice = false }: { voice?: boolean }) {
+export function MayaChat({
+  voice = false,
+  embedded = false,
+}: {
+  voice?: boolean;
+  embedded?: boolean;
+}) {
   const { messages, sendMessage, status, error, stop } = useChat({
     transport: new DefaultChatTransport({ api: "/api/maya-chat" }),
   });
@@ -167,17 +250,23 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
   const busy = status === "submitted" || status === "streaming";
   const wrap = useRef<HTMLDivElement>(null);
 
-  const [voiceOn, setVoiceOn] = useState(voice);
-  useEffect(() => setVoiceOn(voice), [voice]);
-  const sendVoice = useCallback((text: string) => {
-    sendMessage({ text }, { body: { channel: "voice" } });
-    setInput("");
-  }, [sendMessage]);
+  useEffect(() => {
+    if (voice)
+      wrap.current?.querySelector<HTMLButtonElement>('button[aria-label="Start talking"]')?.click();
+  }, [voice]);
+
+  const sendVoice = useCallback(
+    (text: string) => {
+      sendMessage({ text }, { body: { channel: "voice" } });
+      setInput("");
+    },
+    [sendMessage],
+  );
 
   const focus = () => wrap.current?.querySelector("textarea")?.focus();
   useEffect(() => {
-    if (!busy && !voiceOn) focus();
-  }, [busy, voiceOn]);
+    if (!busy) focus();
+  }, [busy]);
 
   const send = (text: string) => {
     if (!text.trim() || busy) return;
@@ -186,21 +275,27 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
   };
 
   const last = messages.at(-1);
-  const waiting = status === "submitted" || (status === "streaming" && last?.role === "assistant" && !last.parts.some((p) => p.type === "text" && p.text));
+  const waiting =
+    status === "submitted" ||
+    (status === "streaming" &&
+      last?.role === "assistant" &&
+      !last.parts.some((p) => p.type === "text" && p.text));
 
   return (
-    <div ref={wrap} className="surface-tile flex h-[min(75vh,720px)] flex-col overflow-hidden rounded-xl border border-border">
+    <div
+      ref={wrap}
+      className={`surface-tile flex flex-col overflow-hidden rounded-xl border border-border ${embedded ? "h-[min(72vh,680px)] min-h-[560px]" : "h-[min(75vh,720px)]"}`}
+    >
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <MayaAvatar />
         <div>
           <p className="font-semibold">Maya</p>
           <p className="text-sm text-muted-foreground">Front desk · Brightleaf Family Medicine</p>
         </div>
-        {!voiceOn && (
-          <button type="button" onClick={() => setVoiceOn(true)} className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-xl px-3 font-semibold text-primary hover:bg-accent">
-            <Mic className="h-4 w-4" aria-hidden="true" /> Talk to Maya
-          </button>
-        )}
+        <span className="ml-auto inline-flex items-center gap-2 text-sm text-success">
+          <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
+          Available
+        </span>
       </div>
 
       <Conversation className="flex-1">
@@ -209,11 +304,19 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
             <div className="space-y-4">
               <div className="flex gap-3">
                 <MayaAvatar />
-                <p className="pt-1.5">Hi, I'm Maya. I can book a visit, answer questions about the clinic, or pass a message to the team. How can I help?</p>
+                <p className="pt-1.5">
+                  Hi, I'm Maya. I can book a visit, answer questions about the clinic, or pass a
+                  message to the team. How can I help?
+                </p>
               </div>
               <div className="flex flex-wrap gap-2 pl-12">
                 {STARTERS.map((s) => (
-                  <button key={s} type="button" onClick={() => send(s)} className="min-h-11 rounded-full border border-border bg-card px-4 text-sm transition-colors duration-150 hover:border-surface-hover">
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => send(s)}
+                    className="min-h-11 rounded-full border border-border bg-card px-4 text-sm transition-colors duration-150 hover:border-surface-hover"
+                  >
                     {s}
                   </button>
                 ))}
@@ -235,13 +338,20 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
               <MayaAvatar />
               <span className="flex gap-1" aria-hidden="true">
                 {[0, 1, 2].map((d) => (
-                  <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground motion-reduce:animate-none" style={{ animationDelay: `${d * 150}ms` }} />
+                  <span
+                    key={d}
+                    className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground motion-reduce:animate-none"
+                    style={{ animationDelay: `${d * 150}ms` }}
+                  />
                 ))}
               </span>
             </div>
           )}
           {error && (
-            <div role="alert" className="flex items-start gap-2 rounded-xl border border-warning/50 bg-warning/10 p-4">
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-xl border border-warning/50 bg-warning/10 p-4"
+            >
               <AlertTriangle className="mt-0.5 h-5 w-5 text-warning" aria-hidden="true" />
               <p>
                 Maya is busy — use the{" "}
@@ -257,13 +367,6 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
       </Conversation>
 
       <div className="border-t border-border p-3">
-        {voiceOn && (
-          <div className="mb-3">
-            <Suspense fallback={<p className="text-sm text-muted-foreground">Starting voice…</p>}>
-              <VoicePanel messages={messages} busy={busy} onTranscript={setInput} onSend={sendVoice} onEnd={() => setVoiceOn(false)} />
-            </Suspense>
-          </div>
-        )}
         <PromptInput onSubmit={(msg) => (busy ? stop() : send(msg.text))}>
           <PromptInputTextarea
             aria-label="Message Maya"
@@ -272,16 +375,35 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
             onChange={(e) => setInput(e.currentTarget.value)}
             className="text-base"
           />
-          <PromptInputFooter className="justify-end">
-            <PromptInputSubmit status={status} disabled={!busy && !input.trim()} className="h-11 w-11" />
+          <PromptInputFooter className="items-center gap-1">
+            <VoicePanel
+              messages={messages}
+              busy={busy}
+              onTranscript={setInput}
+              onSend={sendVoice}
+              onEnd={focus}
+            />
+            <PromptInputSubmit
+              status={status}
+              disabled={!busy && !input.trim()}
+              className="h-11 w-11 shrink-0 rounded-full bg-cta text-cta-foreground hover:bg-cta/90"
+            />
           </PromptInputFooter>
         </PromptInput>
-        <p className="mt-2 text-sm text-muted-foreground">Demo with fictional data - do not enter real health information.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Demo with fictional data - do not enter real health information.
+        </p>
       </div>
 
       <div className="border-t border-border px-4 py-3">
-        <button type="button" onClick={() => setCallback((v) => !v)} aria-expanded={callback} className="inline-flex min-h-11 items-center gap-2 font-semibold text-primary">
-          <ClipboardList className="h-4 w-4" aria-hidden="true" /> Prefer a person? Request a callback
+        <button
+          type="button"
+          onClick={() => setCallback((v) => !v)}
+          aria-expanded={callback}
+          className="inline-flex min-h-11 items-center gap-2 font-semibold text-primary"
+        >
+          <ClipboardList className="h-4 w-4" aria-hidden="true" /> Prefer a person? Request a
+          callback
         </button>
         {callback && <CallbackForm onDone={() => setCallback(false)} />}
       </div>
