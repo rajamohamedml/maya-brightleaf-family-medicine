@@ -519,7 +519,7 @@ export function MayaChat({
         <MayaAvatar />
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-base font-medium">
-            Maya - online
+            Meet Maya - Your anytime front desk assistant
             <span className="h-2 w-2 shrink-0 rounded-full bg-success" aria-hidden="true" />
           </p>
           <p className="truncate text-xs text-primary italic">Care that starts the moment you reach out</p>
