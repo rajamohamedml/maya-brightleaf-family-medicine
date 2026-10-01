@@ -244,8 +244,8 @@ function Schedule() {
                   <dt className="text-muted-foreground">Intake</dt><dd>{open.intake_status === "done" ? "Done" : "Missing"}</dd>
                 </dl>
                 {["confirmed", "reconfirmed"].includes(open.status) && (
-                  <Button variant="destructive" className="min-h-11 w-full" disabled={cancel.isPending} onClick={() => cancel.mutate(open.id)}>
-                    {cancel.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <XCircle className="h-4 w-4" aria-hidden="true" />} Cancel visit
+                  <Button variant="outline" className="min-h-11 w-full" disabled={cancel.isPending} onClick={() => cancel.mutate(open.id)}>
+                    {cancel.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <XCircle className="h-4 w-4" aria-hidden="true" />} Cancel this visit
                   </Button>
                 )}
               </div>
