@@ -55,7 +55,8 @@ async function isStaffRequest() {
 }
 
 async function logRun(rule: string, minutes: number, details: Record<string, unknown>) {
-  await db().from("automation_runs").insert({ rule, actions_count: 1, minutes_saved: minutes, details: details as never });
+  const now = await getNow();
+  await db().from("automation_runs").insert({ rule, actions_count: 1, minutes_saved: minutes, run_at: now.toISOString(), details: details as never });
 }
 
 /* ---------- resolve visit type from reason ---------- */
@@ -247,8 +248,16 @@ export const bookAppointment = createServerFn({ method: "POST" })
           `Please bring: ${WHAT_TO_BRING.join(", ")}.`,
         ].join("\n"),
         rule: "instant_confirmation",
+        sent_at: now.toISOString(),
       });
-    if (data.source !== "staff") await logRun("self_service_booking", 6, { appointment_id: appt.id });
+    if (data.source !== "staff")
+      await logRun(data.source === "waitlist" ? "waitlist_refill" : "self_service_booking", data.source === "waitlist" ? 10 : 6, {
+        appointment_id: appt.id,
+        action: data.source === "waitlist" ? "accepted" : "booked",
+        text: data.source === "waitlist"
+          ? `${patient.first_name} ${patient.last_name} accepted a waitlist offer: ${vt.name} on ${when}.`
+          : `${patient.first_name} ${patient.last_name} booked a ${vt.name} for ${when} — no staff needed.`,
+      });
     if (data.lead_id) await db().from("leads").update({ converted_appointment_id: appt.id }).eq("id", data.lead_id);
 
     return {
@@ -317,6 +326,7 @@ export const manageAppointment = createServerFn({ method: "POST" })
     } else if (data.action === "cancel") {
       await db().from("appointments").update({ status: "cancelled" }).eq("id", a.id);
       await msg("cancellation", "Your visit is cancelled", `Your ${view.visit_name} on ${fmtSlot(a.start_at)} is cancelled. The time is now open for others.`);
+      await refillAfterChange(a.start_at, `${view.first_name} cancelled their ${view.visit_name} on ${fmtSlot(a.start_at)}`);
     } else {
       if (!data.new_start_at) return err("missing_time", "Please choose a new time.");
       const vt = await loadVisitType(view.visit_type_code);
@@ -334,6 +344,7 @@ export const manageAppointment = createServerFn({ method: "POST" })
         throw error;
       }
       await msg("reschedule", "Your visit has moved", `Your ${view.visit_name} moved from ${fmtSlot(a.start_at)} to ${fmtSlot(slot.start_at)} (Central Time).`);
+      await refillAfterChange(a.start_at, `${view.first_name} moved their ${view.visit_name} away from ${fmtSlot(a.start_at)}`);
     }
     const updated = await loadByToken(data.token);
     return { ok: true as const, visit: viewDto(updated!) };
