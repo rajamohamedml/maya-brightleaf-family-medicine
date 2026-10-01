@@ -193,7 +193,7 @@ function Landing() {
             {HOURS.map((h) => (
               <div key={h.days} className="contents">
                 <dt>{h.days}</dt>
-                <dd className="whitespace-nowrap text-right text-muted-foreground">{h.time}</dd>
+                <dd className="text-right text-muted-foreground">{h.time}</dd>
               </div>
             ))}
           </dl>
@@ -202,12 +202,12 @@ function Landing() {
           </p>
         </div>
         <div className="surface-tile rounded-xl border border-border p-5 transition-colors duration-200 hover:border-surface-hover">
-          <h2 className="flex items-center gap-2 font-semibold">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold">
             <MapPin className="h-5 w-5 text-primary" aria-hidden="true" />
             Find us
           </h2>
-          <p className="mt-3">{CLINIC.address}</p>
-          <p className="mt-1 text-muted-foreground">{CLINIC.phone}</p>
+          <p className="mt-3 text-sm">{CLINIC.address}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{CLINIC.phone}</p>
         </div>
       </section>
         </div>
@@ -229,8 +229,8 @@ function List({
 }) {
   return (
     <div>
-      <h3 className="font-semibold">{title}</h3>
-      <ul className="mt-2 space-y-2">
+          <h3 className="text-[15px] font-semibold">{title}</h3>
+          <ul className="mt-2 space-y-2 text-sm">
         {items.map((t) => (
           <li key={t} className="flex gap-2">
             <Icon className={`mt-1 h-4 w-4 shrink-0 ${iconCls}`} aria-hidden="true" />
