@@ -7,7 +7,7 @@ const BUFFER_MIN = 5;
 const STEP_MIN = 15;
 const OPEN = 8 * 60;
 const LUNCH = [12 * 60, 13 * 60] as const;
-const SICK_HOLD = [8 * 60, 9 * 60 + 30] as const;
+const SICK_HOLD = [8 * 60, 9 * 60] as const;
 const TELE_ONLY_WED = [13 * 60, 17 * 60] as const;
 
 export type VisitMode = "in_person" | "telehealth";
