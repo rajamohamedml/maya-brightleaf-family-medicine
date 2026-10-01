@@ -121,7 +121,7 @@ function VisitPage() {
           </section>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4">
+        {!["cancelled", "completed", "released", "no_show"].includes(v.status) && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4">
           {v.intake_status === "done" ? (
             <p className="flex items-center gap-2 text-success"><ClipboardCheck className="h-5 w-5" aria-hidden="true" /> Intake form done</p>
           ) : (
@@ -130,11 +130,16 @@ function VisitPage() {
               <Button asChild variant="outline"><Link to="/intake/$token" params={{ token }}>Complete intake</Link></Button>
             </>
           )}
-        </div>
+        </div>}
       </div>
     );
   }
 
   const name = q.data && "visit" in q.data && q.data.visit ? q.data.visit.first_name : "";
-  return <PageShell title={name ? `Hi ${name}, here's your visit` : "Your visit"}>{body}</PageShell>;
+  return (
+    <PageShell>
+      <h1 className="mx-auto mb-5 max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">{name ? `Hi ${name}, here's your visit` : "Your visit"}</h1>
+      <div className="mx-auto max-w-xl">{body}</div>
+    </PageShell>
+  );
 }

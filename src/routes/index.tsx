@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   Video,
   X,
+  MessageCircle,
+  Sparkles,
 } from "lucide-react";
 import { PageShell } from "@/components/maya/PageShell";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
@@ -28,7 +30,9 @@ export const Route = createFileRoute("/")({
         content:
           "Maya books, confirms and reminds, 24/7. Get in with Dr. Rahman — no hold music. Fictional demo clinic.",
       },
-      { property: "og:title", content: "Book with Dr. Rahman — Brightleaf Family Medicine" },
+      { property: "og:title", content: "Maya - the front desk that never puts you on hold" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:description",
         content:
@@ -111,6 +115,25 @@ function Landing() {
         </div>
         <div className="mt-10 min-w-0 lg:col-start-1 lg:row-start-2 lg:mt-0">
 
+      <section aria-labelledby="how" className="mb-10">
+        <h2 id="how" className="text-xl font-semibold">How Maya works</h2>
+        <ol className="mt-4 grid gap-3 sm:grid-cols-3">
+          {[
+            { icon: MessageCircle, title: "Ask", text: "Tell Maya what you need, by chat or voice." },
+            { icon: CalendarCheck, title: "Book", text: "Pick a time that's really open. You're confirmed right away." },
+            { icon: Sparkles, title: "Relax", text: "Maya sends reminders and your intake form for you." },
+          ].map((s, i) => (
+            <li key={s.title} className="surface-tile rounded-xl border border-border p-4">
+              <p className="flex items-center gap-2 font-semibold">
+                <s.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                <span>{i + 1}. {s.title}</span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{s.text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       <section
         aria-labelledby="ba"
         className="surface-tile rounded-xl border border-border p-5 transition-colors duration-200 hover:border-surface-hover sm:p-6"
@@ -192,13 +215,13 @@ function Landing() {
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
             {HOURS.map((h) => (
               <div key={h.days} className="contents">
-                <dt>{h.days}</dt>
-                <dd className="text-right text-muted-foreground">{h.time}</dd>
+                <dt className="whitespace-nowrap">{h.days}</dt>
+                <dd className="whitespace-nowrap text-right text-muted-foreground">{h.time}</dd>
               </div>
             ))}
           </dl>
           <p className="mt-2 text-sm text-muted-foreground">
-            Lunch 12–1 PM. Wednesday afternoons are telehealth only.
+            <span className="whitespace-nowrap">Lunch 12–1 PM.</span> <span className="whitespace-nowrap">Wednesday 1–5 PM: telehealth only.</span>
           </p>
         </div>
         <div className="surface-tile rounded-xl border border-border p-5 transition-colors duration-200 hover:border-surface-hover">

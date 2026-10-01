@@ -316,7 +316,7 @@ export const getActivity = createServerFn({ method: "POST" })
     const weekAgo = new Date(now.getTime() - 7 * 86400_000).toISOString();
     const [runs, feed, outbox] = await Promise.all([
       sb.from("automation_runs").select("rule,minutes_saved,run_at,details").lte("run_at", now.toISOString()),
-      sb.from("automation_runs").select("id,rule,run_at,details,minutes_saved").order("run_at", { ascending: false }).limit(40),
+      sb.from("automation_runs").select("id,rule,run_at,details,minutes_saved").or("details->>history.is.null,details->>history.neq.true").order("run_at", { ascending: false }).limit(40),
       sb.from("messages").select("id,channel,template,to_address,subject,body,rule,sent_at").order("sent_at", { ascending: false }).limit(50),
     ]);
     for (const r of [runs, feed, outbox]) if (r.error) throw r.error;
