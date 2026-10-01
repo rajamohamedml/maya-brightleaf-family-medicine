@@ -180,8 +180,8 @@ export function VoicePanel({
       const token = ++speakToken.current;
       const utterance = new SpeechSynthesisUtterance(VOICE_GREETING);
       utterance.lang = "en-US";
-      utterance.rate = 0.97;
-      utterance.pitch = 1.05;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.14;
       const voice = pickVoice();
       if (voice) utterance.voice = voice;
       utterance.onend = utterance.onerror = () => {
@@ -234,8 +234,8 @@ export function VoicePanel({
     const token = ++speakToken.current;
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "en-US";
-    u.rate = 0.97;
-    u.pitch = 1.05;
+    u.rate = 1.0;
+    u.pitch = 1.14;
     const v = pickVoice();
     if (v) u.voice = v;
     u.onend = u.onerror = () => {
