@@ -405,6 +405,7 @@ export function MayaChat({
   const [ended, setEnded] = useState(false);
   const [idleStep, setIdleStep] = useState(0);
   const emergency = showsEmergency(messages);
+  const emergBefore = hadEmergency(messages);
   const addMaya = useCallback(
     (text: string) =>
       setMessages((current) => [...current, { id: `idle-${Date.now()}`, role: "assistant", parts: [{ type: "text", text }] }]),
