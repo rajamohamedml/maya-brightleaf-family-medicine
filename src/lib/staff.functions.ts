@@ -108,6 +108,14 @@ export const getToday = createServerFn({ method: "POST" })
     };
   });
 
+function reqOrigin() {
+  try {
+    return new URL(getRequest().url).origin;
+  } catch {
+    return "";
+  }
+}
+
 export const setVisitStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: uuid, status: z.enum(["arrived", "completed", "no_show", "cancelled"]) }).parse(d))
@@ -121,7 +129,7 @@ export const setVisitStatus = createServerFn({ method: "POST" })
       const now = await getNow();
       if (Date.parse(a.start_at) > now.getTime()) {
         const { fmtSlot } = await import("./tz");
-        await refillFreedSlot(a.start_at, a.visit_types.code, `Staff cancelled ${a.patients?.first_name ?? ""} ${a.patients?.last_name ?? ""}'s ${a.visit_types.name} on ${fmtSlot(a.start_at)}`.replace("  ", " "), now, origin());
+        await refillFreedSlot(a.start_at, a.visit_types.code, `Staff cancelled ${a.patients?.first_name ?? ""} ${a.patients?.last_name ?? ""}'s ${a.visit_types.name} on ${fmtSlot(a.start_at)}`.replace("  ", " "), now, reqOrigin());
       }
     }
     if (data.status === "no_show") {
