@@ -2,9 +2,11 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, CalendarPlus, CheckCircle2, ClipboardCheck, ClipboardList, Leaf, Loader2, Phone } from "lucide-react";
+import { AlertTriangle, CalendarPlus, CheckCircle2, ClipboardCheck, ClipboardList, Leaf, Loader2, Mic, Phone } from "lucide-react";
+
+const VoicePanel = lazy(() => import("./VoicePanel").then((m) => ({ default: m.VoicePanel })));
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { PromptInput, PromptInputFooter, PromptInputSubmit, PromptInputTextarea } from "@/components/ai-elements/prompt-input";
@@ -156,7 +158,7 @@ function CallbackForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-export function MayaChat() {
+export function MayaChat({ voice = false }: { voice?: boolean }) {
   const { messages, sendMessage, status, error, stop } = useChat({
     transport: new DefaultChatTransport({ api: "/api/maya-chat" }),
   });
@@ -165,10 +167,17 @@ export function MayaChat() {
   const busy = status === "submitted" || status === "streaming";
   const wrap = useRef<HTMLDivElement>(null);
 
+  const [voiceOn, setVoiceOn] = useState(voice);
+  useEffect(() => setVoiceOn(voice), [voice]);
+  const sendVoice = useCallback((text: string) => {
+    sendMessage({ text }, { body: { channel: "voice" } });
+    setInput("");
+  }, [sendMessage]);
+
   const focus = () => wrap.current?.querySelector("textarea")?.focus();
   useEffect(() => {
-    if (!busy) focus();
-  }, [busy]);
+    if (!busy && !voiceOn) focus();
+  }, [busy, voiceOn]);
 
   const send = (text: string) => {
     if (!text.trim() || busy) return;
@@ -187,6 +196,11 @@ export function MayaChat() {
           <p className="font-semibold">Maya</p>
           <p className="text-sm text-muted-foreground">Front desk · Brightleaf Family Medicine</p>
         </div>
+        {!voiceOn && (
+          <button type="button" onClick={() => setVoiceOn(true)} className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-xl px-3 font-semibold text-primary hover:bg-accent">
+            <Mic className="h-4 w-4" aria-hidden="true" /> Talk to Maya
+          </button>
+        )}
       </div>
 
       <Conversation className="flex-1">
@@ -243,6 +257,13 @@ export function MayaChat() {
       </Conversation>
 
       <div className="border-t border-border p-3">
+        {voiceOn && (
+          <div className="mb-3">
+            <Suspense fallback={<p className="text-sm text-muted-foreground">Starting voice…</p>}>
+              <VoicePanel messages={messages} busy={busy} onTranscript={setInput} onSend={sendVoice} onEnd={() => setVoiceOn(false)} />
+            </Suspense>
+          </div>
+        )}
         <PromptInput onSubmit={(msg) => (busy ? stop() : send(msg.text))}>
           <PromptInputTextarea
             aria-label="Message Maya"
