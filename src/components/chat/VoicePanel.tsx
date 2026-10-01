@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, PhoneOff, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
-import { pickVoice, toSpeech, waitForVoices } from "./speech-text";
+import { pickVoice, startResumeWatch, toSpeech, unlockSpeech, voicesReady, waitForVoices } from "./speech-text";
 
 export type VoiceState = "idle" | "listening" | "thinking" | "speaking";
 const CONSENT_KEY = "maya-voice-consent";
@@ -381,6 +381,7 @@ export function VoicePanel({
         const u = utter(list[i]!);
         u.onend = u.onerror = () => play(i + 1);
         window.speechSynthesis.speak(u);
+        startResumeWatch();
       };
       setState("speaking");
       window.speechSynthesis.cancel();
@@ -419,6 +420,15 @@ export function VoicePanel({
       return;
     }
     // The greeting plays before the mic opens, so Maya never hears herself.
+    // iOS needs the first speak inside the tap: speak now if voices are loaded,
+    // otherwise unlock the engine in the tap, then wait (max 1.5s) for voices.
+    if (voicesReady()) {
+      speakReply(VOICE_GREETING, () => {
+        if (!ended.current && active.current) listen();
+      });
+      return;
+    }
+    unlockSpeech();
     void waitForVoices().then(() => {
       speakReply(VOICE_GREETING, () => {
         if (!ended.current && active.current) listen();
@@ -555,10 +565,9 @@ export function VoicePanel({
     // Say goodbye out loud, with the same gentle voice Maya already uses.
     const speech = window.speechSynthesis;
     if (!speech) return;
-    void waitForVoices().then(() => {
-      speech.cancel();
-      speech.speak(utter(VOICE_FAREWELL));
-    });
+    speech.cancel();
+    speech.speak(utter(VOICE_FAREWELL));
+    startResumeWatch();
   };
 
   if (!supported || denied)

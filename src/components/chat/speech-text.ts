@@ -36,36 +36,85 @@ export function toSpeech(text: string): string {
     .trim();
 }
 
-// Bright, friendly female voices first (Aria/Jenny/Ava on Windows and Edge,
-// Natural and Google voices), then warmer ones (Samantha) and any soft English
-// voice. Known-harsh voices are skipped.
-const GENTLE_ORDER: RegExp[] = [
-  /Aria/i,
-  /Jenny/i,
-  /Ava/i,
-  /Natural/i,
-  /Google US English/i,
-  /(Michelle|Serena|Vanessa|Kathy|Zira|Libby|Nova|Sonoma|Allison|Sandy|Shelley)/i,
-  /Samantha/i,
-  /Female/i,
+// Platform-specific voice preference. iOS (any browser there uses WebKit) has
+// its own voice set; desktop and Android share one list.
+const DESKTOP_ORDER = [
+  "Google US English",
+  "Microsoft Aria Online (Natural)",
+  "Microsoft Jenny Online (Natural)",
+  "Samantha",
 ];
-const HARSH = /\b(David|Mark|Fred|Male|James|Richard|George|Daniel)\b/i;
+const IOS_ORDER = ["Ava (Premium)", "Ava (Enhanced)", "Samantha (Enhanced)", "Samantha"];
+const NOVELTY =
+  /\b(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Grandma|Grandpa)\b/i;
+const FEMALE =
+  /(Female|Woman|Aria|Jenny|Ava|Samantha|Allison|Susan|Zoe|Nicky|Joelle|Michelle|Serena|Vanessa|Kathy|Zira|Libby|Nova|Sonoma|Sandy|Shelley|Emma|Ana|Victoria|Karen|Moira|Tessa|Fiona)/i;
+const MALE = /\b(David|Mark|Fred|Male|James|Richard|George|Daniel|Guy|Aaron|Tom|Alex|Evan|Nathan|Ralph|Junior|Rocko|Eddy|Reed)\b/i;
 
-function score(voice: SpeechSynthesisVoice): number {
-  const i = GENTLE_ORDER.findIndex((re) => re.test(voice.name));
-  const base = i === -1 ? GENTLE_ORDER.length : i;
-  // Within the same tier, prefer the "Natural" neural variant (e.g.
-  // "Microsoft Aria Online (Natural)" over the older robotic "Microsoft Aria").
-  const naturalBonus = /Natural/i.test(voice.name) ? 0 : 0.5;
-  return base + naturalBonus;
+export function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
+
+const isEnUS = (v: SpeechSynthesisVoice) => v.lang.replace("_", "-").toLowerCase().startsWith("en-us");
 
 export function pickVoice(): SpeechSynthesisVoice | undefined {
-  const all = window.speechSynthesis.getVoices();
-  const enUS = all.filter((v) => v.lang.replace("_", "-").startsWith("en-US") && !HARSH.test(v.name));
-  const ordered = [...enUS].sort((a, b) => score(a) - score(b));
-  return ordered[0] ?? enUS[0] ?? all.find((v) => v.lang.startsWith("en") && !HARSH.test(v.name)) ?? all[0];
+  const all = window.speechSynthesis.getVoices().filter((v) => !NOVELTY.test(v.name));
+  const order = isIOS() ? IOS_ORDER : DESKTOP_ORDER;
+  for (const name of order) {
+    // Exact name first; iOS sometimes reports names without the quality suffix in a separate field.
+    const hit =
+      all.find((v) => v.name === name && isEnUS(v)) ?? all.find((v) => v.name === name);
+    if (hit) return hit;
+  }
+  const enUS = all.filter(isEnUS);
+  return (
+    enUS.find((v) => FEMALE.test(v.name) && !MALE.test(v.name)) ??
+    enUS.find((v) => !MALE.test(v.name)) ??
+    enUS[0] ??
+    all.find((v) => v.lang.startsWith("en") && !MALE.test(v.name)) ??
+    all[0]
+  );
 }
+
+/** True once the browser has delivered its voice list. */
+export function voicesReady(): boolean {
+  return typeof window !== "undefined" && !!window.speechSynthesis && window.speechSynthesis.getVoices().length > 0;
+}
+
+/**
+ * iOS only plays speech started inside a tap. Call this synchronously in the tap
+ * handler: a silent utterance unlocks the speech engine so later speaks work
+ * even after waiting for the voice list.
+ */
+export function unlockSpeech() {
+  const speech = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+  if (!speech) return;
+  try {
+    speech.cancel();
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    speech.speak(u);
+  } catch {
+    /* ignore */
+  }
+}
+
+// iOS Safari sometimes pauses speech mid-reply (backgrounding, long text). Nudge it.
+let keepAlive: number | undefined;
+export function startResumeWatch() {
+  if (typeof window === "undefined" || !window.speechSynthesis || keepAlive) return;
+  keepAlive = window.setInterval(() => {
+    const s = window.speechSynthesis;
+    if (s.speaking && s.paused) s.resume();
+    if (!s.speaking && !s.pending) {
+      clearInterval(keepAlive);
+      keepAlive = undefined;
+    }
+  }, 500);
+}
+
 
 // Browsers load their voice list asynchronously; until it arrives, speaking falls
 // back to the default (often rough-sounding) system voice. Wait briefly for it.
