@@ -53,6 +53,13 @@ function hasBooking(m: UIMessage): boolean {
   );
 }
 
+export const IDLE_PROMPTS = [
+  "I haven't heard anything yet — take your time. I'm still here whenever you're ready.",
+  "I still haven't heard a response. Are you still there?",
+  "Since I haven't heard back, I'll close our conversation for now. Thank you for contacting Brightleaf Family Medicine — your well-being is our sole purpose. Take care, and reach out anytime.",
+] as const;
+const VOICE_IDLE_MS = [5000, 8000, 8000];
+
 export type Interruption = { sentence: string; unsaid: string[] };
 
 const VAD_THRESHOLD = 0.035; // RMS energy that counts as someone talking
@@ -93,6 +100,9 @@ export function VoicePanel({
   onEnd,
   onSessionStart,
   startSignal = 0,
+  emergency = false,
+  onIdlePrompt,
+  onIdleClose,
 }: {
   messages: UIMessage[];
   busy: boolean;
@@ -101,6 +111,10 @@ export function VoicePanel({
   onEnd: () => void;
   onSessionStart?: () => void;
   startSignal?: number;
+  /** Emergency screen showing: never run the inactivity close. */
+  emergency?: boolean;
+  onIdlePrompt?: (text: string) => void;
+  onIdleClose?: () => void;
 }) {
   const [supported, setSupported] = useState(true);
   const [denied, setDenied] = useState(false);
@@ -116,6 +130,24 @@ export function VoicePanel({
   const active = useRef(false); // mic toggled on by the user
   const greeted = useRef(false);
   const lastStartSignal = useRef(startSignal);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleStep = useRef(0);
+  const emergencyRef = useRef(emergency);
+  emergencyRef.current = emergency;
+  const fireIdleRef = useRef<() => void>(() => {});
+  const clearIdle = useCallback((resetStep: boolean) => {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = null;
+    if (resetStep) idleStep.current = 0;
+  }, []);
+  /** Start the silence countdown (only while listening and nothing has been heard). */
+  const armIdle = useCallback(() => {
+    if (idleTimer.current || emergencyRef.current) return;
+    idleTimer.current = setTimeout(() => {
+      idleTimer.current = null;
+      fireIdleRef.current();
+    }, VOICE_IDLE_MS[idleStep.current] ?? 8000);
+  }, []);
   const handsFreeRef = useRef(handsFree);
   handsFreeRef.current = handsFree;
 
@@ -193,9 +225,14 @@ export function VoicePanel({
       recRef.current?.abort();
       window.speechSynthesis?.cancel();
       if (silence.current) clearTimeout(silence.current);
+      if (idleTimer.current) clearTimeout(idleTimer.current);
       stopVad();
     };
   }, [stopVad]);
+
+  useEffect(() => {
+    if (emergency) clearIdle(true);
+  }, [emergency, clearIdle]);
 
   /** Stop Maya mid-sentence and remember what she hadn't said yet. */
   const cutSpeech = useCallback(() => {
@@ -258,6 +295,7 @@ export function VoicePanel({
           } else interim += r[0].transcript;
         }
         heard = (finalText + interim).trim();
+        if (heard) clearIdle(true); // the patient is talking: cancel the countdown
         onTranscript(heard);
         if (heard) arm(); // only stop after silence once something was said
       };
@@ -301,12 +339,15 @@ export function VoicePanel({
       recRef.current = rec;
       try {
         rec.start();
-        if (!monitor) setState("listening");
+        if (!monitor) {
+          setState("listening");
+          armIdle();
+        }
       } catch {
         if (!monitor) setState("idle");
       }
     },
-    [cutSpeech, onSend, onTranscript],
+    [cutSpeech, onSend, onTranscript, armIdle, clearIdle],
   );
 
   /** Speak a reply sentence by sentence, listening for a real interruption the whole time. */
@@ -342,6 +383,7 @@ export function VoicePanel({
   );
 
   const stopListening = () => {
+    clearIdle(true);
     active.current = false;
     recRef.current?.stop();
     greeted.current = false;
@@ -351,6 +393,7 @@ export function VoicePanel({
   const beginVoiceSession = useCallback(() => {
     if (ended.current) ended.current = false;
     active.current = true;
+    clearIdle(true);
     onSessionStart?.();
     if (greeted.current) {
       listen();
@@ -369,7 +412,7 @@ export function VoicePanel({
         if (!ended.current && active.current) listen();
       });
     });
-  }, [listen, onSessionStart, speakReply]);
+  }, [listen, onSessionStart, speakReply, clearIdle]);
 
   const requestStart = useCallback(() => {
     if (!getRecCtor()) {
@@ -409,6 +452,7 @@ export function VoicePanel({
           monitoring.current = false;
           resultBase.current = resultCount.current;
           setState("listening");
+          armIdle();
         } else listen();
       } else {
         recRef.current?.abort();
@@ -432,6 +476,44 @@ export function VoicePanel({
   }, [busy, messages, listen, speakReply]);
 
   /** Tap the mic or Stop while Maya talks: she stops at once and listens. */
+  /** Shut the session after the inactivity closing has been spoken. */
+  const closeForInactivity = () => {
+    clearIdle(true);
+    ended.current = true;
+    active.current = false;
+    greeted.current = false;
+    speaking.current = false;
+    monitoring.current = false;
+    pendingInterruption.current = null;
+    speakToken.current++;
+    stopVad();
+    const rec = recRef.current;
+    recRef.current = null;
+    rec?.abort();
+    setState("idle");
+    onIdleClose?.();
+  };
+
+  fireIdleRef.current = () => {
+    if (!active.current || ended.current || speaking.current || emergencyRef.current || awaitingReply.current) return;
+    const step = idleStep.current;
+    const text = IDLE_PROMPTS[step] ?? IDLE_PROMPTS[2];
+    // Stop the mic while Maya speaks the prompt, so she never hears herself.
+    const rec = recRef.current;
+    recRef.current = null;
+    rec?.abort();
+    onTranscript("");
+    onIdlePrompt?.(text);
+    const after = () => {
+      if (ended.current) return;
+      if (step >= 2) return closeForInactivity();
+      idleStep.current = step + 1;
+      if (active.current) listen();
+    };
+    if (!window.speechSynthesis) return after();
+    speakReply(text, after);
+  };
+
   const interrupt = () => {
     active.current = true;
     listen();
@@ -445,6 +527,7 @@ export function VoicePanel({
   };
 
   const end = () => {
+    clearIdle(true);
     ended.current = true;
     active.current = false;
     greeted.current = false;
