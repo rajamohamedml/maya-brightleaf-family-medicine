@@ -154,11 +154,11 @@ function ActivityPage() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-80 sm:w-96">
-                  <h2 className="font-semibold">How the demo clock works</h2>
-                  <p className="mt-2 text-sm">
+                  <h2 className="text-sm font-semibold">How the demo clock works</h2>
+                  <p className="mt-2 text-xs">
                     This page shows what Maya does on her own. The clock lets you fast-forward time to watch her follow-ups happen — nothing is actually sent.
                   </p>
-                  <ul className="mt-3 space-y-2 text-sm">
+                  <ul className="mt-3 space-y-2 text-xs">
                     <li><span className="font-semibold">Run automations now</span> — Maya checks everything due at the current time, without moving the clock: sends intake and reconfirm reminders, releases visits that weren't reconfirmed in time, offers freed slots to the waitlist, nudges people who didn't finish booking, sends recall reminders and replies to refill/records requests. Running it twice never sends anything twice.</li>
                     <li><span className="font-semibold">+1 hour</span> — jump ahead one hour, then run the checks. Good for seeing a waitlist offer expire.</li>
                     <li><span className="font-semibold">+1 day</span> — jump ahead one day, then run the checks. Reminders and reconfirm requests go out.</li>
@@ -167,7 +167,7 @@ function ActivityPage() {
                     <li><span className="font-semibold">Reset to real time</span> — stop simulating and use today's real date and time. Your data stays as it is.</li>
                     <li><span className="font-semibold">Reset demo data (bottom of this page)</span> — start the demo over: restores the fictional patients, visits and waitlist, clears the outbox and activity, and sets the clock back to Monday 7:30am. Staff logins are kept.</li>
                   </ul>
-                  <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
+                  <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
                     Tip: press Reset demo data, cancel a visit in Schedule, then press +1 day twice, and watch What Maya did and the Outbox.
                   </p>
                 </PopoverContent>
