@@ -44,6 +44,9 @@ const STARTERS = [
   "Do you take Aetna?",
 ];
 
+const VOICE_FAREWELL =
+  "Have a nice day! Take care and thank you for contacting Brightleaf Family Medicine!";
+
 type Slot = { start_at: string; end_at: string; label: string };
 type Booked = {
   ok: true;
@@ -247,7 +250,7 @@ export function MayaChat({
   voice?: boolean;
   embedded?: boolean;
 }) {
-  const { messages, sendMessage, status, error, stop } = useChat({
+  const { messages, sendMessage, setMessages, status, error, stop } = useChat({
     transport: new DefaultChatTransport({ api: "/api/maya-chat" }),
   });
   const [input, setInput] = useState("");
@@ -402,6 +405,14 @@ export function MayaChat({
               onSend={sendVoice}
               onEnd={() => {
                 setVoiceSession(false);
+                setMessages((current) => [
+                  ...current,
+                  {
+                    id: `voice-farewell-${Date.now()}`,
+                    role: "assistant",
+                    parts: [{ type: "text", text: VOICE_FAREWELL }],
+                  },
+                ]);
                 focus();
               }}
               onSessionStart={() => setVoiceSession(true)}
