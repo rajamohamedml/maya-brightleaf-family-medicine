@@ -53,7 +53,11 @@ const HARSH = /\b(David|Mark|Fred|Male|James|Richard|George|Daniel)\b/i;
 
 function score(voice: SpeechSynthesisVoice): number {
   const i = GENTLE_ORDER.findIndex((re) => re.test(voice.name));
-  return i === -1 ? GENTLE_ORDER.length : i;
+  const base = i === -1 ? GENTLE_ORDER.length : i;
+  // Within the same tier, prefer the "Natural" neural variant (e.g.
+  // "Microsoft Aria Online (Natural)" over the older robotic "Microsoft Aria").
+  const naturalBonus = /Natural/i.test(voice.name) ? 0 : 0.5;
+  return base + naturalBonus;
 }
 
 export function pickVoice(): SpeechSynthesisVoice | undefined {
