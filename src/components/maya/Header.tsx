@@ -34,6 +34,7 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
 export function Header() {
   const location = useLocation();
   const inClinic = location.pathname.startsWith("/clinic");
+  const isLogin = location.pathname === "/clinic/login";
   const link = `flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-foreground ${focus}`;
 
   return (
@@ -53,11 +54,12 @@ export function Header() {
               <Mic className="h-4 w-4" aria-hidden="true" /> Talk to Maya
             </Link>
           )}
-          {inClinic ? (
+          {inClinic && !isLogin && (
             <Link to="/" className={`${link} hidden sm:flex`}>
               View patient site <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
-          ) : (
+          )}
+          {!inClinic && (
             <Link to="/clinic" className={`${link} hidden sm:flex`}>
               <Lock className="h-3.5 w-3.5" aria-hidden="true" /> Clinic login
             </Link>
