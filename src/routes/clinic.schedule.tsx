@@ -96,6 +96,9 @@ function Schedule() {
         </div>
       </div>
 
+      <VisitLegend className="mt-2 sm:mt-0 sm:row-start-2 xl:row-start-1 xl:col-start-3 xl:justify-self-end xl:mr-[236px]" />
+
+
       {w && panel === "block" && <BlockForm days={days} onDone={() => setPanel("none")} />}
       {panel === "visit" && <AddVisitForm onDone={() => setPanel("none")} />}
 
