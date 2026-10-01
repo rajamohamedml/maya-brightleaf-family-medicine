@@ -5,7 +5,7 @@ import { LeafMark } from "./Logo";
 const focus =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-function SideSwitch({ inClinic }: { inClinic: boolean }) {
+function SideSwitch({ inClinic, email }: { inClinic: boolean; email?: string }) {
   const item = (active: boolean) =>
     `flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-sm transition-colors duration-150 md:px-3 ${focus} ${
       active ? "font-semibold text-primary" : "text-muted-foreground hover:text-primary"
@@ -19,17 +19,24 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
             <span className="hidden md:inline">Patient site</span>
           </Link>
         ) : (
-          <Link to="/clinic" className={item(true)} aria-label="Clinic dashboard">
-            <Stethoscope className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden md:inline">Clinic dashboard</span>
-          </Link>
+          <span className="flex items-center">
+            <Link to="/clinic" className={item(true)} aria-label="Clinic dashboard">
+              <Stethoscope className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden md:inline">Clinic dashboard</span>
+            </Link>
+            {email && (
+              <span className="hidden max-w-56 truncate pl-1 text-sm text-muted-foreground sm:inline">
+                Signed in as: {email}
+              </span>
+            )}
+          </span>
         )}
       </nav>
     </div>
   );
 }
 
-export function Header({ onSignOut }: { onSignOut?: () => void }) {
+export function Header({ onSignOut, email }: { onSignOut?: () => void; email?: string }) {
   const location = useLocation();
   const inClinic = location.pathname.startsWith("/clinic");
   const link = `flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary ${focus}`;
@@ -47,7 +54,7 @@ export function Header({ onSignOut }: { onSignOut?: () => void }) {
           </Link>
         </div>
         <div className="flex items-center gap-1">
-          <SideSwitch inClinic={inClinic && !!onSignOut} />
+          <SideSwitch inClinic={inClinic && !!onSignOut} email={email} />
           {inClinic && onSignOut && (
             <button type="button" onClick={onSignOut} className={`${link} hidden sm:flex`}>
               <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> Sign out
