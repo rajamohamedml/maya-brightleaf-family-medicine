@@ -343,6 +343,7 @@ export const getActivity = createServerFn({ method: "POST" })
         no_shows_prevented_week: inRange(weekAgo, isNoShowPrevented),
         released: inRange(dayStart, isReleased),
         refilled: inRange(dayStart, isRefilled),
+        refilled_week: inRange(weekAgo, isRefilled),
         calls_avoided: inRange(dayStart, isCallAvoided),
         calls_avoided_week: inRange(weekAgo, isCallAvoided),
       },
