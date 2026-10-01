@@ -2,14 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { useState } from "react";
 import { AlertTriangle, Check, CheckCircle2, Clock, Hourglass, Info, ListTodo, Loader2, Phone, UserRoundX } from "lucide-react";
 import { getInbox, markTaskDone } from "@/lib/staff.functions";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
 import { EmptyState } from "@/components/maya/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { fmtSlot } from "@/lib/tz";
 import type { ReactNode } from "react";
 
@@ -109,31 +108,25 @@ const TAB_INFO: Record<string, string> = {
 };
 
 function TabInfo({ tab }: { tab: string }) {
-  const [open, setOpen] = useState(false);
   return (
-    <span onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
           <span
             role="button"
             tabIndex={0}
             aria-label={`What is ${tab}?`}
             className="-mr-1 inline-flex h-11 w-9 cursor-pointer items-center justify-center text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            onClick={(e) => { e.preventDefault(); setOpen((o) => !o); }}
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setOpen(false)}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((o) => !o); } }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.preventDefault()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
             <Info className="h-4 w-4" aria-hidden="true" />
           </span>
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-72 text-sm leading-relaxed text-muted-foreground sm:w-80">
-          {TAB_INFO[tab]}
-        </PopoverContent>
-      </Popover>
-    </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-64 text-center">{TAB_INFO[tab]}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
