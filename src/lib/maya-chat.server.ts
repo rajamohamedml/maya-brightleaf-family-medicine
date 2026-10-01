@@ -106,6 +106,7 @@ export async function handleMayaChat(request: Request): Promise<Response> {
     m.parts.some(
       (p) =>
         p.type === "data-emergency" ||
+        (p.type === "text" && p.text.includes("Please call 911 now")) ||
         (p.type === "tool-check_emergency" &&
           (p as { state?: string; output?: { emergency?: boolean } }).state === "output-available" &&
           (p as { output?: { emergency?: boolean } }).output?.emergency === true),
