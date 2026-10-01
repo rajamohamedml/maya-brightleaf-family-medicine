@@ -13,6 +13,8 @@ import {
   Leaf,
   Loader2,
   Phone,
+  Rocket,
+  Square,
 } from "lucide-react";
 import {
   Conversation,
