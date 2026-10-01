@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Mic, Stethoscope, Users, ExternalLink } from "lucide-react";
+import { Mic, Stethoscope, Users, ExternalLink, Lock } from "lucide-react";
 import { LeafMark } from "./Logo";
 import { VOICE_ENABLED } from "@/lib/clinic-info";
 
@@ -55,7 +55,9 @@ export function Header() {
               View patient site <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           ) : (
-            <Link to="/clinic" className={`${link} hidden sm:flex`}>Clinic login</Link>
+            <Link to="/clinic" className={`${link} hidden sm:flex`}>
+              <Lock className="h-3.5 w-3.5" aria-hidden="true" /> Clinic login
+            </Link>
           )}
         </div>
       </div>
