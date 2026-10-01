@@ -286,7 +286,7 @@ export function MayaChat({
   return (
     <div
       ref={wrap}
-      className={`surface-tile flex flex-col overflow-hidden rounded-xl border border-border ${embedded ? "h-[min(80vh,780px)] min-h-[560px]" : "h-[min(75vh,720px)]"}`}
+      className={`surface-tile flex flex-col overflow-hidden rounded-xl border border-border ${embedded ? "h-[min(88vh,940px)] min-h-[600px]" : "h-[min(75vh,720px)]"}`}
     >
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <MayaAvatar />
