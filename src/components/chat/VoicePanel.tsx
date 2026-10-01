@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
 import { pickVoice, toSpeech, waitForVoices } from "./speech-text";
 
-type VState = "idle" | "listening" | "thinking" | "speaking";
+export type VoiceState = "idle" | "listening" | "thinking" | "speaking";
 const CONSENT_KEY = "maya-voice-consent";
 const SILENCE_MS = 1500;
 export const VOICE_GREETING =
@@ -104,6 +104,7 @@ export function VoicePanel({
   onIdlePrompt,
   onIdleClose,
   skipGreeting = false,
+  onStateChange,
 }: {
   messages: UIMessage[];
   busy: boolean;
@@ -117,11 +118,12 @@ export function VoicePanel({
   onIdlePrompt?: (text: string) => void;
   onIdleClose?: () => void;
   skipGreeting?: boolean;
+  onStateChange?: (state: VoiceState) => void;
 }) {
   const [supported, setSupported] = useState(true);
   const [denied, setDenied] = useState(false);
   const [consented, setConsented] = useState(false);
-  const [state, setState] = useState<VState>("idle");
+  const [state, setState] = useState<VoiceState>("idle");
   const [handsFree, setHandsFree] = useState(true);
   const [showNotice, setShowNotice] = useState(false);
   const recRef = useRef<Rec | null>(null);
@@ -155,6 +157,10 @@ export function VoicePanel({
   }, []);
   const handsFreeRef = useRef(handsFree);
   handsFreeRef.current = handsFree;
+
+  useEffect(() => {
+    onStateChange?.(state);
+  }, [onStateChange, state]);
 
   // Sentence queue: what Maya is saying now and what's still unsaid.
   const sentences = useRef<string[]>([]);

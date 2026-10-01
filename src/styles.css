@@ -207,6 +207,7 @@
 @theme inline {
   --color-popup-accent: oklch(0.722 0.131 183.9);
   --color-popup-strong: oklch(0.855 0.138 181);
+  --color-chat-launcher-foreground: oklch(1 0 0);
 }
 @utility popup {
   background: linear-gradient(135deg, oklch(0.722 0.131 183.9 / 14%) 0%, oklch(0.222 0.038 263.6 / 95%) 60%), #111a2e;
@@ -259,3 +260,118 @@
 [data-sonner-toast][data-type="info"] [data-title]::before,
 [data-sonner-toast][data-type="warning"] [data-title]::before,
 [data-sonner-toast][data-type="error"] [data-title]::before { color: #e2e8f0; }
+
+@property --chat-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes chat-border-turn {
+  to { --chat-angle: 360deg; }
+}
+
+@keyframes chat-glow-breathe {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes chat-launcher-ring {
+  0%, 72%, 100% { transform: scale(1); opacity: 0; }
+  82% { transform: scale(1.16); opacity: 0.32; }
+}
+
+@utility chat-active-frame {
+  --chat-angle: 0deg;
+  position: relative;
+  isolation: isolate;
+  padding: 1.5px;
+  border-radius: 16px;
+  background: var(--color-primary);
+  box-shadow: 0 0 24px rgb(20 184 166 / 18%);
+
+  &[data-chat-state="thinking"] {
+    background: conic-gradient(from var(--chat-angle), #14b8a6, #5eead4, transparent 68%, #14b8a6);
+    animation: chat-border-turn 6s linear infinite;
+  }
+
+  &[data-chat-state="listening"] {
+    background: conic-gradient(from var(--chat-angle), #14b8a6, #5eead4, transparent 68%, #14b8a6);
+    box-shadow: 0 0 30px rgb(20 184 166 / 28%);
+    animation: chat-border-turn 3s linear infinite;
+  }
+
+  &[data-chat-state="speaking"] {
+    background: conic-gradient(from var(--chat-angle), #14b8a6, #5eead4, transparent 68%, #14b8a6);
+  }
+
+  &[data-chat-state="speaking"]::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -12px;
+    border-radius: 22px;
+    background: var(--color-primary);
+    filter: blur(18px);
+    pointer-events: none;
+    animation: chat-glow-breathe 2s ease-in-out infinite;
+  }
+
+  &[data-chat-state="ended"] {
+    background: var(--color-input);
+    box-shadow: none;
+  }
+}
+
+@utility chat-active-frame-inner {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 14.5px;
+  background: var(--color-card);
+}
+
+@utility maya-launcher {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(135deg, #14b8a6, #5eead4);
+  box-shadow: 0 8px 28px rgb(20 184 166 / 28%);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 2px solid var(--color-primary);
+    border-radius: inherit;
+    pointer-events: none;
+    animation: chat-launcher-ring 4s ease-out infinite;
+  }
+}
+
+@utility maya-launcher-unread {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-background);
+  border-radius: 999px;
+  background: var(--color-success);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-active-frame,
+  .chat-active-frame[data-chat-state="thinking"],
+  .chat-active-frame[data-chat-state="listening"],
+  .chat-active-frame[data-chat-state="speaking"] {
+    background: var(--color-primary);
+    box-shadow: 0 0 24px rgb(20 184 166 / 18%);
+    animation: none;
+  }
+
+  .chat-active-frame[data-chat-state="speaking"]::after,
+  .maya-launcher::before {
+    animation: none;
+    opacity: 0;
+  }
+}

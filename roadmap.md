@@ -9,4 +9,5 @@
 - [x] Pre-publish security scan (clean)
 - [x] Feedback saved to database
 - [x] Add to calendar: Google / Outlook choice
+- [x] Make Maya chat more visible with activity border, voice status, and public launcher
 - [ ] GitHub connect (user action in editor)
