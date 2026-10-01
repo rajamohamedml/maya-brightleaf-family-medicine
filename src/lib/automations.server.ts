@@ -55,7 +55,8 @@ const time = (iso: string) => fmtTime(iso).replace(" AM", "am").replace(" PM", "
 /* ---------------- waitlist refill ---------------- */
 
 /** Offer a freed time to the first matching waiting entry. Returns the offered patient's name, if any. */
-export async function refillSlot(startAt: string, now: Date, base: string): Promise<string | null> {
+/** Offer a freed slot to the first waiting entry that wants the SAME visit type and whose dates + window include it. */
+export async function refillSlot(startAt: string, visitCode: string, now: Date, base: string): Promise<string | null> {
   if (Date.parse(startAt) <= now.getTime()) return null;
   const date = localDateStr(new Date(startAt));
   const min = localMinutes(new Date(startAt));
@@ -68,13 +69,14 @@ export async function refillSlot(startAt: string, now: Date, base: string): Prom
     .eq("status", "waiting")
     .lte("earliest_date", date)
     .gte("latest_date", date)
+    .contains("visit_type_codes", [visitCode])
     .order("created_at");
   for (const w of entries ?? []) {
     if (w.window === "am" && min >= 12 * 60) continue;
     if (w.window === "pm" && min < 13 * 60) continue;
     const p = w.patients;
     if (!p) continue;
-    for (const code of w.visit_type_codes) {
+    for (const code of [visitCode]) {
       const vt = await loadVisitType(code);
       if (!vt) continue;
       if ((vt.new_only && !p.is_new) || (vt.established_only && p.is_new) || (vt.insurer_only && vt.insurer_only !== p.insurer)) continue;
@@ -103,14 +105,14 @@ export async function refillSlot(startAt: string, now: Date, base: string): Prom
 async function expireOffers(now: Date, base: string, s: RunSummary) {
   const { data } = await db()
     .from("waitlist")
-    .select("id,offered_start_at,patients(first_name,last_name)")
+    .select("id,offered_start_at,offered_visit_code,patients(first_name,last_name)")
     .eq("status", "offered")
     .lte("offer_expires_at", now.toISOString());
   for (const w of data ?? []) {
     await db().from("waitlist").update({ status: "expired" }).eq("id", w.id);
     s.expired++;
-    if (!w.offered_start_at) continue;
-    const next = await refillSlot(w.offered_start_at, now, base);
+    if (!w.offered_start_at || !w.offered_visit_code) continue;
+    const next = await refillSlot(w.offered_start_at, w.offered_visit_code, now, base);
     const who = `${w.patients?.first_name ?? ""} ${w.patients?.last_name ?? ""}`.trim();
     if (next) s.offers++;
     await logRun("waitlist_refill", 0, now, {
@@ -159,7 +161,7 @@ async function appointmentRules(now: Date, base: string, s: RunSummary) {
           now,
         );
         s.released++;
-        const offered = await refillSlot(a.start_at, now, base);
+        const offered = await refillSlot(a.start_at, a.visit_types?.code ?? "", now, base);
         if (offered) s.offers++;
         const label = `${p.first_name} ${p.last_name}'s ${time(a.start_at)} ${shortName(a.visit_types?.code ?? "")} visit`.replace("  ", " ");
         await logRun("confirm_or_release", MINUTES.confirm_or_release, now, {
