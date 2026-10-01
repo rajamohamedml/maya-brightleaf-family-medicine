@@ -280,12 +280,11 @@ export const bookAppointment = createServerFn({ method: "POST" })
   .handler(({ data }) => bookCore(data));
 
 /* ---------- manage-appointment ---------- */
+const APPT_COLS =
+  "id,patient_id,manage_token,start_at,end_at,mode,status,intake_status,visit_type_id,visit_types(code,name,minutes,modes),patients(first_name,last_name,email,phone,is_new,insurer)";
+
 async function loadByToken(t: string) {
-  const { data } = await db()
-    .from("appointments")
-    .select("id,patient_id,start_at,end_at,mode,status,intake_status,visit_type_id,visit_types(code,name,minutes,modes),patients(first_name,email,is_new,insurer)")
-    .eq("manage_token", t)
-    .maybeSingle();
+  const { data } = await db().from("appointments").select(APPT_COLS).eq("manage_token", t).maybeSingle();
   return data;
 }
 
@@ -304,6 +303,92 @@ const viewDto = (a: Loaded) => ({
   can_change: (BLOCKING_STATUSES as readonly string[]).includes(a.status) && a.status !== "arrived",
 });
 
+const shortVisit = (code: string) =>
+  ({ new_patient: "new-patient", physical: "physical", medicare_awv: "wellness", follow_up: "follow-up", sick: "sick", telehealth: "telehealth" })[code] ?? "";
+
+/**
+ * The one cancel/reschedule brain, shared by the manage link and Maya.
+ * Re-checks every scheduling rule; the DB exclusion constraint is the atomic final guard.
+ * Keeps the same manage token and intake status, frees the old slot and refills it from the waitlist.
+ */
+async function applyChange(
+  a: Loaded,
+  action: "cancel" | "reschedule",
+  newStartAt: string | undefined,
+  via: { source: "link" | "chat" | "voice"; reason?: string | undefined },
+) {
+  const view = viewDto(a);
+  if (!view.can_change) return err("not_changeable", "This visit can no longer be changed online. Please call the clinic.");
+  const now = await getNow();
+  const base = origin();
+  const manage = `${base}/visit/${a.manage_token}`;
+  const email = a.patients?.email ?? "";
+  const phoneNo = a.patients?.phone ?? "";
+  const fullName = `${a.patients?.first_name ?? ""} ${a.patients?.last_name ?? ""}`.trim();
+  const fromMaya = via.source !== "link";
+  const rule = fromMaya ? "self_service_change" : "patient_self_service";
+  const send = async (template: string, subject: string, emailBody: string, smsBody: string) => {
+    const rows = [
+      { channel: "email" as const, to_address: email, subject, body: emailBody },
+      ...(fromMaya && phoneNo ? [{ channel: "sms" as const, to_address: phoneNo, subject: null, body: smsBody }] : []),
+    ];
+    await db().from("messages").insert(
+      rows.map((r) => ({ ...r, patient_id: a.patient_id, appointment_id: a.id, template, rule, sent_at: now.toISOString() })),
+    );
+  };
+  const day = (iso: string) => `${fmtDay(iso).split(",")[0]} ${fmtTime(iso)}`;
+
+  if (action === "cancel") {
+    const shortNotice = Date.parse(a.start_at) - now.getTime() < 24 * 3600_000;
+    await db().from("appointments").update({ status: "cancelled" }).eq("id", a.id);
+    await send(
+      "cancellation",
+      "Your visit is cancelled",
+      `Hi ${view.first_name}, your ${view.visit_name} on ${fmtSlot(a.start_at)} (Central Time) is cancelled. The time is now open for others.\nBook again: ${base}/book`,
+      `Brightleaf: your ${view.visit_name} on ${fmtSlot(a.start_at)} is cancelled. Book again: ${base}/book`,
+    );
+    if (fromMaya)
+      await logRun("self_service_change", 5, {
+        appointment_id: a.id,
+        action: "cancelled",
+        source: via.source,
+        text: `Maya cancelled ${fullName}'s ${shortVisit(view.visit_type_code)} visit on ${day(a.start_at)} at the patient's request.`,
+      });
+    await refillAfterChange(a.start_at, view.visit_type_code, `${view.first_name} cancelled their ${view.visit_name} on ${fmtSlot(a.start_at)}`);
+    return { ok: true as const, short_notice: shortNotice, old_start_at: a.start_at };
+  }
+
+  if (!newStartAt) return err("missing_time", "Please choose a new time.");
+  const vt = await loadVisitType(view.visit_type_code);
+  if (!vt) return err("unknown_visit_type", "That visit type isn't available.");
+  const slot = await findSlot({ vt, mode: a.mode, startAt: newStartAt, now, excludeAppointmentId: a.id });
+  const alternatives = async () => (await nextSlots({ vt, mode: a.mode, after: newStartAt, now, excludeAppointmentId: a.id })).map(toSlotDto);
+  if (!slot) return { error: "slot_taken", message: "Sorry, that time was just taken.", alternatives: await alternatives() };
+  const { error } = await db()
+    .from("appointments")
+    .update({ start_at: slot.start_at, end_at: slot.end_at, status: "confirmed", reconfirmed_at: null })
+    .eq("id", a.id);
+  if (error) {
+    if (error.code === "23P01") return { error: "slot_taken", message: "Sorry, that time was just taken.", alternatives: await alternatives() };
+    throw error;
+  }
+  await send(
+    "reschedule",
+    "Your visit has moved",
+    `Hi ${view.first_name}, your ${view.visit_name} moved from ${fmtSlot(a.start_at)} to ${fmtSlot(slot.start_at)} (Central Time).\nManage your visit or add it to your calendar: ${manage}`,
+    `Brightleaf: your ${view.visit_name} moved to ${fmtSlot(slot.start_at)}. Manage or add to calendar: ${manage}`,
+  );
+  if (fromMaya)
+    await logRun("self_service_change", 5, {
+      appointment_id: a.id,
+      action: "rescheduled",
+      source: via.source,
+      text: `Maya rescheduled ${fullName}'s ${shortVisit(view.visit_type_code)} visit from ${day(a.start_at)} to ${day(slot.start_at)} at the patient's request.`,
+    });
+  await refillAfterChange(a.start_at, view.visit_type_code, `${view.first_name} moved their ${view.visit_name} away from ${fmtSlot(a.start_at)}`);
+  return { ok: true as const, old_start_at: a.start_at, new_start_at: slot.start_at, new_end_at: slot.end_at };
+}
+
 export const manageAppointment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
@@ -321,38 +406,80 @@ export const manageAppointment = createServerFn({ method: "POST" })
 
     const view = viewDto(a);
     if (!view.can_change) return err("not_changeable", "This visit can no longer be changed online. Please call the clinic.");
-    const email = a.patients?.email ?? "";
-    const msg = (template: string, subject: string, body: string) =>
-      db().from("messages").insert({ patient_id: a.patient_id, appointment_id: a.id, channel: "email", template, to_address: email, subject, body, rule: "patient_self_service" });
 
     if (data.action === "reconfirm") {
       if (a.status === "reconfirmed") return { ok: true as const, visit: view };
       await db().from("appointments").update({ status: "reconfirmed", reconfirmed_at: new Date().toISOString() }).eq("id", a.id);
-    } else if (data.action === "cancel") {
-      await db().from("appointments").update({ status: "cancelled" }).eq("id", a.id);
-      await msg("cancellation", "Your visit is cancelled", `Your ${view.visit_name} on ${fmtSlot(a.start_at)} is cancelled. The time is now open for others.`);
-      await refillAfterChange(a.start_at, view.visit_type_code, `${view.first_name} cancelled their ${view.visit_name} on ${fmtSlot(a.start_at)}`);
     } else {
-      if (!data.new_start_at) return err("missing_time", "Please choose a new time.");
-      const vt = await loadVisitType(view.visit_type_code);
-      if (!vt) return err("unknown_visit_type", "That visit type isn't available.");
-      const now = await getNow();
-      const slot = await findSlot({ vt, mode: a.mode, startAt: data.new_start_at, now, excludeAppointmentId: a.id });
-      const alternatives = async () => (await nextSlots({ vt, mode: a.mode, after: data.new_start_at!, now, excludeAppointmentId: a.id })).map(toSlotDto);
-      if (!slot) return { error: "slot_taken", message: "Sorry, that time was just taken.", alternatives: await alternatives() };
-      const { error } = await db()
-        .from("appointments")
-        .update({ start_at: slot.start_at, end_at: slot.end_at, status: "confirmed", reconfirmed_at: null })
-        .eq("id", a.id);
-      if (error) {
-        if (error.code === "23P01") return { error: "slot_taken", message: "Sorry, that time was just taken.", alternatives: await alternatives() };
-        throw error;
-      }
-      await msg("reschedule", "Your visit has moved", `Your ${view.visit_name} moved from ${fmtSlot(a.start_at)} to ${fmtSlot(slot.start_at)} (Central Time).`);
-      await refillAfterChange(a.start_at, view.visit_type_code, `${view.first_name} moved their ${view.visit_name} away from ${fmtSlot(a.start_at)}`);
+      const r = await applyChange(a, data.action, data.new_start_at, { source: "link" });
+      if (!("ok" in r)) return r;
     }
     const updated = await loadByToken(data.token);
     return { ok: true as const, visit: viewDto(updated!) };
+  });
+
+/* ---------- Maya: find + change my visit (identity re-verified on every call) ---------- */
+async function verifiedUpcoming(dob: string, phoneNo: string) {
+  const p = await findPatient(dob, phoneNo);
+  if (!p) return null;
+  const now = await getNow();
+  const { data } = await db()
+    .from("appointments")
+    .select(APPT_COLS)
+    .eq("patient_id", p.id)
+    .in("status", ["confirmed", "reconfirmed"])
+    .gt("start_at", now.toISOString())
+    .order("start_at");
+  return { patient: p, visits: data ?? [] };
+}
+
+export const findMyVisits = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ dob: dateStr, phone }).parse(d))
+  .handler(async ({ data }) => {
+    const r = await verifiedUpcoming(data.dob, data.phone);
+    if (!r) return { found: false as const, message: "not found" };
+    return {
+      found: true as const,
+      first_name: r.patient.first_name,
+      patient_is_new: r.patient.is_new,
+      visits: r.visits.map((a) => ({
+        id: a.id,
+        visit_type_code: a.visit_types?.code ?? "",
+        visit_name: a.visit_types?.name ?? "Visit",
+        start_at: a.start_at,
+        label: fmtSlot(a.start_at),
+        mode: a.mode,
+      })),
+    };
+  });
+
+export const changeMyVisit = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        dob: dateStr,
+        phone,
+        appointment_id: z.string().uuid(),
+        action: z.enum(["cancel", "reschedule"]),
+        new_start_at: z.string().datetime({ offset: true }).optional(),
+        reason: z.string().trim().max(200).optional(),
+        source: z.enum(["chat", "voice"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const r = await verifiedUpcoming(data.dob, data.phone);
+    const a = r?.visits.find((v) => v.id === data.appointment_id);
+    if (!a) return err("not_found", "I couldn't find that visit for you.");
+    const res = await applyChange(a, data.action, data.new_start_at, { source: data.source, reason: data.reason });
+    if (!("ok" in res)) return res;
+    return {
+      ...res,
+      action: data.action,
+      visit_name: a.visit_types?.name ?? "Visit",
+      mode: a.mode,
+      manage_token: a.manage_token,
+    };
   });
 
 /* ---------- submit-intake ---------- */
