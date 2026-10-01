@@ -77,13 +77,16 @@ function splitSentences(text: string): string[] {
 const words = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9' ]/g, " ").split(/\s+/).filter(Boolean);
 
-/** True when what the mic heard is mostly Maya's own sentence coming back through the speakers. */
+/** True when what the mic heard closely matches (over 80%) Maya's own sentence coming back through the speakers. */
 function isEcho(heard: string, spoken: string): boolean {
   const h = words(heard);
   if (!h.length) return true;
   const said = new Set(words(spoken));
-  return h.filter((w) => said.has(w)).length / h.length >= 0.6;
+  return h.filter((w) => said.has(w)).length / h.length > 0.8;
 }
+
+/** Rough spoken length of a sentence at Maya's rate (~130 words/min). */
+const estimateMs = (s: string) => Math.max(800, words(s).length * 460);
 
 function utter(text: string) {
   const u = new SpeechSynthesisUtterance(text);
@@ -172,9 +175,35 @@ export function VoicePanel({
   const speaking = useRef(false);
   // While Maya speaks, the recogniser runs in "monitor" mode and only reacts to a real interruption.
   const monitoring = useRef(false);
-  const resultBase = useRef(0); // ignore recogniser results before this index (echo)
-  const resultCount = useRef(0);
   const pendingInterruption = useRef<Interruption | null>(null);
+  // Current patient turn, built from recogniser results.
+  const turnFinal = useRef("");
+  const turnInterim = useRef("");
+  const turnConfidence = useRef(1);
+  const consumed = useRef(0); // results below this index belong to an earlier turn / echo
+  const appended = useRef(new Set<number>()); // final results already added to the turn
+  const firstNonFinal = useRef(0);
+  const resultLen = useRef(0);
+  const midSpeech = useRef(false);
+  const ptt = useRef(false);
+  const [pttHeld, setPttHeld] = useState(false);
+  // Hidden debug panel (?debug=voice).
+  const debugOn = useRef(false);
+  const [debug, setDebug] = useState<{ on: boolean; rec: string; event: string; interim: string }>({
+    on: false,
+    rec: "off",
+    event: "",
+    interim: "",
+  });
+  const note = (event: string) => {
+    if (!debugOn.current) return;
+    setDebug({
+      on: true,
+      rec: recRef.current ? (midSpeech.current ? "running (speech)" : "running") : "stopped",
+      event: `${event} @ ${new Date().toLocaleTimeString()}`,
+      interim: `${turnFinal.current.trim()} | ${turnInterim.current}`,
+    });
+  };
   // Voice-activity detection (Web Audio energy on an echo-cancelled mic stream).
   const vad = useRef<{ stream: MediaStream; ctx: AudioContext; raf: number; loudSince: number | null; activeAt: number } | null>(null);
   const vadAvailable = useRef(true);
@@ -224,16 +253,14 @@ export function VoicePanel({
       });
   }, []);
 
-  /** Someone has been talking for ~300ms within the last second. */
-  const voiceActive = () => {
-    if (!vad.current) return !vadAvailable.current;
-    return performance.now() - vad.current.activeAt < 1000;
-  };
-
   useEffect(() => {
     ended.current = false;
     setSupported(!!getRecCtor());
     setConsented(localStorage.getItem(CONSENT_KEY) === "1");
+    if (new URLSearchParams(window.location.search).get("debug") === "voice") {
+      debugOn.current = true;
+      setDebug((d) => ({ ...d, on: true }));
+    }
     window.speechSynthesis?.getVoices();
     return () => {
       ended.current = true;
