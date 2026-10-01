@@ -53,7 +53,7 @@ export function Header({ onSignOut, email }: { onSignOut?: () => void; email?: s
               <LeafMark />
               <span>Brightleaf Family Medicine</span>
             </span>
-            <span className="text-xs font-normal italic text-primary">Rooted in care, centered on you</span>
+            <span className="pl-10 text-xs font-normal italic text-primary">Rooted in care, centered on you</span>
           </Link>
         </div>
         <div className="flex items-center gap-1">
