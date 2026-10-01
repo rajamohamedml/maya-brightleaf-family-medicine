@@ -164,10 +164,11 @@ function ActivityPage() {
                     <li><span className="font-semibold">+1 day</span> — jump ahead one day, then run the checks. Reminders and reconfirm requests go out.</li>
                     <li><span className="font-semibold">+2 days</span> — jump ahead two days, then run the checks. Unconfirmed visits get released and offered to the waitlist.</li>
                     <li><span className="font-semibold">7:00am tomorrow</span> — jump to tomorrow at 7am, when same-day sick slots open.</li>
-                    <li><span className="font-semibold">Reset to real time</span> — stop simulating and use today's real date and time.</li>
+                    <li><span className="font-semibold">Reset to real time</span> — stop simulating and use today's real date and time. Your data stays as it is.</li>
+                    <li><span className="font-semibold">Reset demo data (bottom of this page)</span> — start the demo over: restores the fictional patients, visits and waitlist, clears the outbox and activity, and sets the clock back to Monday 7:30am. Staff logins are kept.</li>
                   </ul>
                   <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
-                    Tip: cancel a visit in Schedule, then press +1 day twice, and watch What Maya did and the Outbox.
+                    Tip: press Reset demo data, cancel a visit in Schedule, then press +1 day twice, and watch What Maya did and the Outbox.
                   </p>
                 </PopoverContent>
               </Popover>
