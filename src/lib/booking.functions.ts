@@ -16,7 +16,7 @@ import {
   type Slot,
 } from "./scheduling.server";
 import { visitCodeForReason, WHAT_TO_BRING } from "./booking-rules";
-import { addDays, fmtSlot, localDateStr } from "./tz";
+import { addDays, fmtDay, fmtSlot, fmtTime, localDateStr } from "./tz";
 import { refillFreedSlot } from "./automations.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
