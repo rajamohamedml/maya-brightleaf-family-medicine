@@ -95,7 +95,23 @@ export async function handleMayaChat(request: Request): Promise<Response> {
   if (!messages.length) return Response.json({ error: "No messages" }, { status: 400 });
 
   // Hard safety gate: a red flag in the newest patient message stops booking before any model call.
-  if (keywordEmergency(lastUserText(messages))) return emergencyResponse();
+  const latestUser = lastUserText(messages);
+  if (keywordEmergency(latestUser)) return emergencyResponse();
+
+  // If an emergency was already handled in this conversation, later check_emergency
+  // calls must screen only the newest words — never the earlier symptom text still
+  // sitting in the history, or the 911 card repeats on every following message.
+  const emergencyAlreadyHandled = messages.some((m) =>
+    m.role === "assistant" &&
+    m.parts.some(
+      (p) =>
+        p.type === "data-emergency" ||
+        (p.type === "text" && p.text.includes("Please call 911 now")) ||
+        (p.type === "tool-check_emergency" &&
+          (p as { state?: string; output?: { emergency?: boolean } }).state === "output-available" &&
+          (p as { output?: { emergency?: boolean } }).output?.emergency === true),
+    ),
+  );
 
   const apiKey = process.env['LOVABLE_API_KEY'];
   if (!apiKey) return Response.json({ error: "AI is not configured" }, { status: 500 });
@@ -125,11 +141,13 @@ export async function handleMayaChat(request: Request): Promise<Response> {
       inputSchema: z.object({ text: z.string() }),
       execute: async ({ text }) => {
         if (keywordEmergency(text)) return { emergency: true };
+        const screenText =
+          emergencyAlreadyHandled && latestUser.trim() ? latestUser : text;
         const r = streamText({
           model: provider.responses(MODEL),
           system:
             "Answer only YES or NO. Does this message describe chest pain, trouble breathing, signs of a stroke, heavy bleeding, or thoughts of self-harm/suicide happening now?",
-          prompt: text,
+          prompt: screenText,
           providerOptions: { openai: reasoning },
         });
         const out = (await r.text).trim().toUpperCase();
