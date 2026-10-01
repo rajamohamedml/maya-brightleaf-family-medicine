@@ -290,19 +290,28 @@ function Stat({ icon: Icon, value, label, sub }: { icon: LucideIcon; value: stri
   );
 }
 
+const MAX_URL_DISPLAY = 32;
+
+// Shorten long links for display only — the real token stays in the data.
+function trimUrls(text: string): string {
+  return text.replace(/https?:\/\/\S+/g, (url) =>
+    url.length <= MAX_URL_DISPLAY ? url : `${url.slice(0, MAX_URL_DISPLAY)}…`
+  );
+}
+
 function Preview({ m }: { m: { channel: string; to_address: string; subject: string | null; body: string } }) {
   if (m.channel === "sms")
     return (
-      <div className="mx-auto mt-2 max-w-xs rounded-[2rem] border border-border bg-background p-4">
+      <div className="mx-auto mt-2 max-w-xs min-w-0 rounded-[2rem] border border-border bg-background p-4">
         <p className="text-center text-sm text-muted-foreground">Brightleaf · to {m.to_address}</p>
-        <p className="mt-3 whitespace-pre-line rounded-2xl rounded-bl-sm bg-secondary p-3 text-secondary-foreground">{m.body}</p>
+        <p className="mt-3 [overflow-wrap:anywhere] whitespace-pre-line rounded-2xl rounded-bl-sm bg-secondary p-3 text-secondary-foreground">{trimUrls(m.body)}</p>
       </div>
     );
   return (
-    <div className="mt-2 rounded-xl border border-border bg-background p-4">
-      <p className="text-sm text-muted-foreground">To: {m.to_address}</p>
+    <div className="mt-2 min-w-0 rounded-xl border border-border bg-background p-4">
+      <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">To: {m.to_address}</p>
       <p className="mt-1 font-semibold">{m.subject ?? "(no subject)"}</p>
-      <p className="mt-2 whitespace-pre-line">{m.body}</p>
+      <p className="mt-2 [overflow-wrap:anywhere] whitespace-pre-line">{trimUrls(m.body)}</p>
     </div>
   );
 }
