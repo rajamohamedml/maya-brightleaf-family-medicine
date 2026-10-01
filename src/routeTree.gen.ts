@@ -10,33 +10,161 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BookRouteImport } from './routes/book'
+import { Route as ChatRouteImport } from './routes/chat'
+import { Route as ClinicRouteImport } from './routes/clinic'
+import { Route as ClinicIndexRouteImport } from './routes/clinic.index'
+import { Route as ClinicActivityRouteImport } from './routes/clinic.activity'
+import { Route as ClinicInboxRouteImport } from './routes/clinic.inbox'
+import { Route as ClinicScheduleRouteImport } from './routes/clinic.schedule'
+import { Route as IntakeTokenRouteImport } from './routes/intake.$token'
+import { Route as VisitTokenRouteImport } from './routes/visit.$token'
+import { Route as VisitOfferIdRouteImport } from './routes/visit.offer.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookRoute = BookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClinicRoute = ClinicRouteImport.update({
+  id: '/clinic',
+  path: '/clinic',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClinicIndexRoute = ClinicIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ClinicRoute,
+} as any)
+const ClinicActivityRoute = ClinicActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => ClinicRoute,
+} as any)
+const ClinicInboxRoute = ClinicInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => ClinicRoute,
+} as any)
+const ClinicScheduleRoute = ClinicScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => ClinicRoute,
+} as any)
+const IntakeTokenRoute = IntakeTokenRouteImport.update({
+  id: '/intake/$token',
+  path: '/intake/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VisitTokenRoute = VisitTokenRouteImport.update({
+  id: '/visit/$token',
+  path: '/visit/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VisitOfferIdRoute = VisitOfferIdRouteImport.update({
+  id: '/visit/offer/$id',
+  path: '/visit/offer/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
+  '/chat': typeof ChatRoute
+  '/clinic': typeof ClinicRouteWithChildren
+  '/clinic/activity': typeof ClinicActivityRoute
+  '/clinic/inbox': typeof ClinicInboxRoute
+  '/clinic/schedule': typeof ClinicScheduleRoute
+  '/intake/$token': typeof IntakeTokenRoute
+  '/visit/$token': typeof VisitTokenRoute
+  '/clinic/': typeof ClinicIndexRoute
+  '/visit/offer/$id': typeof VisitOfferIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
+  '/chat': typeof ChatRoute
+  '/clinic/activity': typeof ClinicActivityRoute
+  '/clinic/inbox': typeof ClinicInboxRoute
+  '/clinic/schedule': typeof ClinicScheduleRoute
+  '/intake/$token': typeof IntakeTokenRoute
+  '/visit/$token': typeof VisitTokenRoute
+  '/clinic': typeof ClinicIndexRoute
+  '/visit/offer/$id': typeof VisitOfferIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
+  '/chat': typeof ChatRoute
+  '/clinic': typeof ClinicRouteWithChildren
+  '/clinic/activity': typeof ClinicActivityRoute
+  '/clinic/inbox': typeof ClinicInboxRoute
+  '/clinic/schedule': typeof ClinicScheduleRoute
+  '/intake/$token': typeof IntakeTokenRoute
+  '/visit/$token': typeof VisitTokenRoute
+  '/clinic/': typeof ClinicIndexRoute
+  '/visit/offer/$id': typeof VisitOfferIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/book'
+    | '/chat'
+    | '/clinic'
+    | '/clinic/activity'
+    | '/clinic/inbox'
+    | '/clinic/schedule'
+    | '/intake/$token'
+    | '/visit/$token'
+    | '/clinic/'
+    | '/visit/offer/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/book'
+    | '/chat'
+    | '/clinic/activity'
+    | '/clinic/inbox'
+    | '/clinic/schedule'
+    | '/intake/$token'
+    | '/visit/$token'
+    | '/clinic'
+    | '/visit/offer/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/book'
+    | '/chat'
+    | '/clinic'
+    | '/clinic/activity'
+    | '/clinic/inbox'
+    | '/clinic/schedule'
+    | '/intake/$token'
+    | '/visit/$token'
+    | '/clinic/'
+    | '/visit/offer/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BookRoute: typeof BookRoute
+  ChatRoute: typeof ChatRoute
+  ClinicRoute: typeof ClinicRouteWithChildren
+  IntakeTokenRoute: typeof IntakeTokenRoute
+  VisitTokenRoute: typeof VisitTokenRoute
+  VisitOfferIdRoute: typeof VisitOfferIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +176,104 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/book': {
+      id: '/book'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof BookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clinic': {
+      id: '/clinic'
+      path: '/clinic'
+      fullPath: '/clinic'
+      preLoaderRoute: typeof ClinicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clinic/': {
+      id: '/clinic/'
+      path: '/'
+      fullPath: '/clinic/'
+      preLoaderRoute: typeof ClinicIndexRouteImport
+      parentRoute: typeof ClinicRoute
+    }
+    '/clinic/activity': {
+      id: '/clinic/activity'
+      path: '/activity'
+      fullPath: '/clinic/activity'
+      preLoaderRoute: typeof ClinicActivityRouteImport
+      parentRoute: typeof ClinicRoute
+    }
+    '/clinic/inbox': {
+      id: '/clinic/inbox'
+      path: '/inbox'
+      fullPath: '/clinic/inbox'
+      preLoaderRoute: typeof ClinicInboxRouteImport
+      parentRoute: typeof ClinicRoute
+    }
+    '/clinic/schedule': {
+      id: '/clinic/schedule'
+      path: '/schedule'
+      fullPath: '/clinic/schedule'
+      preLoaderRoute: typeof ClinicScheduleRouteImport
+      parentRoute: typeof ClinicRoute
+    }
+    '/intake/$token': {
+      id: '/intake/$token'
+      path: '/intake/$token'
+      fullPath: '/intake/$token'
+      preLoaderRoute: typeof IntakeTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/visit/$token': {
+      id: '/visit/$token'
+      path: '/visit/$token'
+      fullPath: '/visit/$token'
+      preLoaderRoute: typeof VisitTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/visit/offer/$id': {
+      id: '/visit/offer/$id'
+      path: '/visit/offer/$id'
+      fullPath: '/visit/offer/$id'
+      preLoaderRoute: typeof VisitOfferIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface ClinicRouteChildren {
+  ClinicActivityRoute: typeof ClinicActivityRoute
+  ClinicInboxRoute: typeof ClinicInboxRoute
+  ClinicScheduleRoute: typeof ClinicScheduleRoute
+  ClinicIndexRoute: typeof ClinicIndexRoute
+}
+
+const ClinicRouteChildren: ClinicRouteChildren = {
+  ClinicActivityRoute: ClinicActivityRoute,
+  ClinicInboxRoute: ClinicInboxRoute,
+  ClinicScheduleRoute: ClinicScheduleRoute,
+  ClinicIndexRoute: ClinicIndexRoute,
+}
+
+const ClinicRouteWithChildren =
+  ClinicRoute._addFileChildren(ClinicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BookRoute: BookRoute,
+  ChatRoute: ChatRoute,
+  ClinicRoute: ClinicRouteWithChildren,
+  IntakeTokenRoute: IntakeTokenRoute,
+  VisitTokenRoute: VisitTokenRoute,
+  VisitOfferIdRoute: VisitOfferIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
