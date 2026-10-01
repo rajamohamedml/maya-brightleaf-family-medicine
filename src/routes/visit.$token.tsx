@@ -98,7 +98,7 @@ function VisitPage() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Keep my visit</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => act("cancel", "Your visit is cancelled.")}>Yes, cancel</AlertDialogAction>
+                    <AlertDialogAction className="border border-border bg-transparent text-foreground hover:bg-transparent hover:text-primary" onClick={() => act("cancel", "Your visit is cancelled.")}>Yes, cancel my visit</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>

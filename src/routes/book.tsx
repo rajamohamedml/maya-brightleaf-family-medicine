@@ -510,7 +510,7 @@ function ActionBar({ children }: { children: ReactNode }) {
 
 function FormError({ msg }: { msg?: string | undefined }) {
   if (!msg) return null;
-  return <p role="alert" className="mt-4 rounded-lg border border-warning p-3 text-warning">{msg}</p>;
+  return <p role="alert" className="popup-alert mt-4 p-3">{msg}</p>;
 }
 
 function SummaryCard({ items }: { items: [string, string | null | undefined][] }) {

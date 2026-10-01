@@ -244,8 +244,8 @@ function Schedule() {
                   <dt className="text-muted-foreground">Intake</dt><dd>{open.intake_status === "done" ? "Done" : "Missing"}</dd>
                 </dl>
                 {["confirmed", "reconfirmed"].includes(open.status) && (
-                  <Button variant="destructive" className="min-h-11 w-full" disabled={cancel.isPending} onClick={() => cancel.mutate(open.id)}>
-                    {cancel.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <XCircle className="h-4 w-4" aria-hidden="true" />} Cancel visit
+                  <Button variant="outline" className="min-h-11 w-full" disabled={cancel.isPending} onClick={() => cancel.mutate(open.id)}>
+                    {cancel.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <XCircle className="h-4 w-4" aria-hidden="true" />} Cancel this visit
                   </Button>
                 )}
               </div>
@@ -329,12 +329,12 @@ function BlockForm({ days, onDone, onViewVisit }: { days: string[]; onDone: () =
         <Input id="b-note" className="min-h-11" maxLength={120} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Staff meeting" />
       </div>
       <div aria-live="polite" className="sm:col-span-4">
-        {bad && <p role="alert" className="text-sm text-destructive">Pick an end time after the start time.</p>}
-        {past && <p role="alert" className="text-sm text-warning">This time has already passed. Pick a later time.</p>}
+        {bad && <p role="alert" className="popup-alert p-3 text-sm">Pick an end time after the start time.</p>}
+        {past && <p role="alert" className="popup-alert p-3 text-sm">This time has already passed. Pick a later time.</p>}
         {!bad && conflicts.length > 0 && (
-          <div role="alert" className="rounded-lg border border-warning/50 bg-warning/10 p-3">
+          <div role="alert" className="popup-alert p-3">
             <p className="flex items-start gap-2 font-semibold text-foreground">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" aria-hidden="true" />
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-popup-strong" aria-hidden="true" />
               You can't block this time — it overlaps {conflicts.length} booked {conflicts.length === 1 ? "visit" : "visits"}:
             </p>
             <ul className="mt-2 space-y-1">
@@ -495,7 +495,7 @@ function AddVisitForm({ onDone }: { onDone: () => void }) {
           empty={<p className="text-muted-foreground">No open times for this visit type in the next 2 weeks.</p>}
         />
       )}
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="popup-alert p-3 text-sm">{error}</p>}
       <div className="flex gap-2">
         <Button variant="cta" className="min-h-11" disabled={!ready || m.isPending} onClick={() => m.mutate()}>
           {m.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} {slot ? `Book ${slot.label}` : "Pick a time"}

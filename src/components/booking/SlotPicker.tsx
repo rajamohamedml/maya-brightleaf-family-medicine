@@ -86,13 +86,13 @@ export function SlotPicker({
   if (q.isLoading) return <LoadingSkeleton rows={4} />;
   if (q.isError)
     return (
-      <div role="alert" className="rounded-xl border border-border p-4">
+      <div role="alert" className="popup-alert p-4">
         <p>We couldn't load open times.</p>
         <Button variant="outline" className="mt-3" onClick={() => q.refetch()}>Try again</Button>
       </div>
     );
   const res = q.data!;
-  if ("error" in res) return <p role="alert" className="rounded-xl border border-warning p-4 text-warning">{res.message}</p>;
+  if ("error" in res) return <p role="alert" className="popup-alert p-4">{res.message}</p>;
   if (res.total === 0)
     return (
       <EmptyState icon={CalendarX2} title="No open times in the next 2 weeks">

@@ -202,3 +202,41 @@
 @utility visit-amber { background: linear-gradient(135deg, var(--visit-amber), transparent 55%); }
 @utility visit-rose { background: linear-gradient(135deg, var(--visit-rose), transparent 55%); }
 @utility visit-cyan { background: linear-gradient(135deg, var(--visit-cyan), transparent 55%); }
+
+/* Shared feedback popup look: toasts, inline alerts, confirm dialogs. Emergency card is exempt. */
+@theme inline {
+  --color-popup-accent: oklch(0.722 0.131 183.9);
+  --color-popup-strong: oklch(0.855 0.138 181);
+}
+@utility popup {
+  background: linear-gradient(135deg, oklch(0.722 0.131 183.9 / 14%) 0%, oklch(0.222 0.038 263.6 / 95%) 60%), #111a2e;
+  border: 1px solid rgba(20, 184, 166, 0.45);
+  border-radius: 12px;
+  color: #e2e8f0;
+}
+@utility popup-alert {
+  background: linear-gradient(135deg, oklch(0.722 0.131 183.9 / 14%) 0%, oklch(0.222 0.038 263.6 / 95%) 60%), #111a2e;
+  border: 1px solid rgba(20, 184, 166, 0.45);
+  border-left: 4px solid #14b8a6;
+  border-radius: 12px;
+  color: #e2e8f0;
+}
+
+/* Toasts: type is told apart by icon + a plain title, never by colour. */
+[data-sonner-toast][data-styled="true"] { border-left: 4px solid #14b8a6 !important; }
+[data-sonner-toast] [data-title] { color: #e2e8f0; }
+[data-sonner-toast][data-type] [data-title]::before {
+  display: block; font-weight: 600; color: #e2e8f0; margin-bottom: 2px;
+}
+[data-sonner-toast][data-type="success"] [data-title]::before { content: "Done"; }
+[data-sonner-toast][data-type="info"] [data-title]::before { content: "Heads up"; }
+[data-sonner-toast][data-type="warning"] [data-title]::before { content: "Can't do that"; }
+[data-sonner-toast][data-type="error"] [data-title]::before { content: "Something went wrong"; }
+[data-sonner-toast][data-type="success"] [data-title],
+[data-sonner-toast][data-type="info"] [data-title],
+[data-sonner-toast][data-type="warning"] [data-title],
+[data-sonner-toast][data-type="error"] [data-title] { font-weight: 400; color: #94a3b8; }
+[data-sonner-toast][data-type="success"] [data-title]::before,
+[data-sonner-toast][data-type="info"] [data-title]::before,
+[data-sonner-toast][data-type="warning"] [data-title]::before,
+[data-sonner-toast][data-type="error"] [data-title]::before { color: #e2e8f0; }
