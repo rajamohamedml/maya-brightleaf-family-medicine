@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Mic, Stethoscope, Users, ExternalLink, Lock } from "lucide-react";
+import { Mic, Stethoscope, Users, ExternalLink, Lock, Eye } from "lucide-react";
 import { LeafMark } from "./Logo";
 import { VOICE_ENABLED } from "@/lib/clinic-info";
 
@@ -18,9 +18,13 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
           <Users className="h-4 w-4" aria-hidden="true" />
           <span className="hidden md:inline">Patient site</span>
         </Link>
-        <Link to="/clinic" className={item(inClinic)} aria-current={inClinic ? "page" : undefined} aria-label="Clinic dashboard">
-          <Stethoscope className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden md:inline">Clinic dashboard</span>
+        <Link to="/clinic" className={item(inClinic)} aria-current={inClinic ? "page" : undefined} aria-label={inClinic ? "Clinic dashboard" : "Watch the clinic dashboard"}>
+          {inClinic ? (
+            <Stethoscope className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <Eye className="h-4 w-4" aria-hidden="true" />
+          )}
+          <span className="hidden md:inline">{inClinic ? "Clinic dashboard" : "Watch"}</span>
         </Link>
       </nav>
       <span className="rounded-full border border-border px-1.5 py-0.5 text-[14px] leading-none text-muted-foreground">Demo</span>
