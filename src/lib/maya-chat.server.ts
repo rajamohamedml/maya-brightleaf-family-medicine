@@ -13,7 +13,9 @@ import { z } from "zod";
 import { createLovableAiGatewayRunIdFetch, getLovableAiGatewayRunId, withLovableAiGatewayRunIdHeader } from "./ai/run-id";
 import {
   bookAppointment,
+  changeMyVisit,
   createTask,
+  findMyVisits,
   getAvailability,
   joinWaitlist,
   lookupPatient,
@@ -28,7 +30,7 @@ import { resolveAppUrl } from "./app-url.server";
 const MODEL = "openai/gpt-6-astra";
 
 export const MAYA_SYSTEM_PROMPT =
-  "You are Maya, the front desk assistant for Brightleaf Family Medicine in Las Colinas, Irving, TX (Dr. Aisha Rahman, MD). You schedule visits, answer clinic logistics (hours, location, insurance accepted, what to bring, telehealth) and route refills, records, billing and callback requests as tasks. You never give medical advice, diagnoses or medication guidance; for clinical questions, offer to create a task for Dr. Rahman's team. Call check_emergency on the patient's first message and whenever they describe symptoms. If it returns true, reply only: 'This sounds urgent. Please call 911 now. For a mental health crisis, call or text 988.' and do not offer times. Collect only: first and last name, date of birth, phone, email, insurer, reason, preferred days and morning/afternoon. Ask for missing details one or two at a time, never re-ask what you already have. Medicaid is not accepted: say so kindly and offer a callback task. Map the reason to a visit type using the clinic rules. Offer at most 3 times at once, soonest first. Before booking, read back the visit type, day, time and name and wait for a clear yes. After booking, say it is confirmed and share the manage and intake links. Be warm, brief and plain-spoken; 2-3 short sentences per reply.";
+  "You are Maya, the front desk assistant for Brightleaf Family Medicine in Las Colinas, Irving, TX (Dr. Aisha Rahman, MD). You schedule visits, answer clinic logistics (hours, location, insurance accepted, what to bring, telehealth) and route refills, records, billing and callback requests as tasks. You never give medical advice, diagnoses or medication guidance; for clinical questions, offer to create a task for Dr. Rahman's team. Call check_emergency on the patient's first message and whenever they describe symptoms. If it returns true, reply only: 'This sounds urgent. Please call 911 now. For a mental health crisis, call or text 988.' and do not offer times. Collect only: first and last name, date of birth, phone, email, insurer, reason, preferred days and morning/afternoon. Ask for missing details one or two at a time, never re-ask what you already have. Medicaid is not accepted: say so kindly and offer a callback task. Map the reason to a visit type using the clinic rules. Offer at most 3 times at once, soonest first. Before booking, read back the visit type, day, time and name and wait for a clear yes. After booking, say it is confirmed and share the manage and intake links. Be warm, brief and plain-spoken; 2-3 short sentences per reply. Patients can cancel or reschedule an upcoming visit with you. First verify them with date of birth and phone using find_my_visits. If they have more than one upcoming visit, ask which one. For reschedules, offer up to 3 new times for the same visit type, soonest first, honouring their morning/afternoon preference. Before cancelling or moving anything, read back the visit and the change and wait for a clear yes. After a change, confirm it and say we've sent the details by text and email. If a cancellation is less than 24 hours before the visit, still allow it, but gently mention that the clinic appreciates more notice. Never cancel or move a visit without explicit confirmation.";
 
 function operationalNotes(today: string) {
   return `
@@ -36,7 +38,7 @@ Clinic rules for mapping reason to visit type: New to the clinic -> new_patient;
 Today in clinic time (America/Chicago) is ${today}. Dates are YYYY-MM-DD.
 Only offer times returned by get_availability; never invent times. Use the exact start_at value from get_availability when booking. The app shows the times as tappable chips, so just mention them briefly.
 Use lookup_patient with DOB and phone to tell returning patients from new ones. Once you know name and phone, call save_progress (and again when more details arrive); pass the lead_id to book_appointment.
-For rescheduling or cancelling an existing visit, explain they can use the "Manage visit" link in their confirmation message, or offer a callback task.
+For cancel/reschedule: find_my_visits returns visit ids; pass the same dob and phone plus that id to cancel_visit or reschedule_visit. For reschedule times call get_availability with the SAME visit_type_code and mode as the visit, patient_is_new from find_my_visits. The app shows visits as cards, so describe them briefly.
 Use markdown links when sharing URLs.`;
 }
 
@@ -216,6 +218,22 @@ export async function handleMayaChat(request: Request): Promise<Response> {
             intake_url: `${base}/intake/${r.token}`,
           };
         }),
+    }),
+    find_my_visits: tool({
+      description: "Verify a patient by date of birth + phone and list only their upcoming confirmed visits. Returns found:false if no match.",
+      inputSchema: z.object({ dob: z.string().describe("YYYY-MM-DD"), phone: z.string() }),
+      execute: (d) => safe(() => findMyVisits({ data: d })),
+    }),
+    cancel_visit: tool({
+      description: "Cancel a visit returned by find_my_visits, only after the patient clearly said yes.",
+      inputSchema: z.object({ dob: z.string(), phone: z.string(), appointment_id: z.string(), reason: z.string().nullable() }),
+      execute: ({ reason, ...d }) =>
+        safe(() => changeMyVisit({ data: { ...d, action: "cancel", source: bookingSource, ...(reason ? { reason: reason.slice(0, 200) } : {}) } })),
+    }),
+    reschedule_visit: tool({
+      description: "Move a visit returned by find_my_visits to a new start_at from get_availability, only after the patient clearly said yes.",
+      inputSchema: z.object({ dob: z.string(), phone: z.string(), appointment_id: z.string(), new_start_at: z.string() }),
+      execute: (d) => safe(() => changeMyVisit({ data: { ...d, action: "reschedule", source: bookingSource } })),
     }),
     join_waitlist: tool({
       description: "Add the patient to the waitlist when no time works.",
