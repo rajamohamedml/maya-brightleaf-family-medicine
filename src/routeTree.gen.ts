@@ -21,6 +21,7 @@ import { Route as ClinicScheduleRouteImport } from './routes/clinic.schedule'
 import { Route as IntakeTokenRouteImport } from './routes/intake.$token'
 import { Route as VisitTokenRouteImport } from './routes/visit.$token'
 import { Route as VisitOfferIdRouteImport } from './routes/visit.offer.$id'
+import { Route as ApiPublicHooksRunAutomationsRouteImport } from './routes/api/public/hooks/run-automations'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -82,6 +83,12 @@ const VisitOfferIdRoute = VisitOfferIdRouteImport.update({
   path: '/visit/offer/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksRunAutomationsRoute =
+  ApiPublicHooksRunAutomationsRouteImport.update({
+    id: '/api/public/hooks/run-automations',
+    path: '/api/public/hooks/run-automations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/visit/$token': typeof VisitTokenRoute
   '/clinic/': typeof ClinicIndexRoute
   '/visit/offer/$id': typeof VisitOfferIdRoute
+  '/api/public/hooks/run-automations': typeof ApiPublicHooksRunAutomationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,6 +117,7 @@ export interface FileRoutesByTo {
   '/visit/$token': typeof VisitTokenRoute
   '/clinic': typeof ClinicIndexRoute
   '/visit/offer/$id': typeof VisitOfferIdRoute
+  '/api/public/hooks/run-automations': typeof ApiPublicHooksRunAutomationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,6 +133,7 @@ export interface FileRoutesById {
   '/visit/$token': typeof VisitTokenRoute
   '/clinic/': typeof ClinicIndexRoute
   '/visit/offer/$id': typeof VisitOfferIdRoute
+  '/api/public/hooks/run-automations': typeof ApiPublicHooksRunAutomationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/visit/$token'
     | '/clinic/'
     | '/visit/offer/$id'
+    | '/api/public/hooks/run-automations'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/visit/$token'
     | '/clinic'
     | '/visit/offer/$id'
+    | '/api/public/hooks/run-automations'
   id:
     | '__root__'
     | '/'
@@ -167,6 +179,7 @@ export interface FileRouteTypes {
     | '/visit/$token'
     | '/clinic/'
     | '/visit/offer/$id'
+    | '/api/public/hooks/run-automations'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,6 +190,7 @@ export interface RootRouteChildren {
   IntakeTokenRoute: typeof IntakeTokenRoute
   VisitTokenRoute: typeof VisitTokenRoute
   VisitOfferIdRoute: typeof VisitOfferIdRoute
+  ApiPublicHooksRunAutomationsRoute: typeof ApiPublicHooksRunAutomationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -265,6 +279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VisitOfferIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/run-automations': {
+      id: '/api/public/hooks/run-automations'
+      path: '/api/public/hooks/run-automations'
+      fullPath: '/api/public/hooks/run-automations'
+      preLoaderRoute: typeof ApiPublicHooksRunAutomationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -295,6 +316,7 @@ const rootRouteChildren: RootRouteChildren = {
   IntakeTokenRoute: IntakeTokenRoute,
   VisitTokenRoute: VisitTokenRoute,
   VisitOfferIdRoute: VisitOfferIdRoute,
+  ApiPublicHooksRunAutomationsRoute: ApiPublicHooksRunAutomationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

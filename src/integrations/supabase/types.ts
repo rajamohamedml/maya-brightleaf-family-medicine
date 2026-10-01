@@ -534,7 +534,9 @@ export type Database = {
           id: string
           latest_date: string
           offer_expires_at: string | null
+          offered_appointment_id: string | null
           offered_start_at: string | null
+          offered_visit_code: string | null
           patient_id: string
           status: Database["public"]["Enums"]["waitlist_status"]
           visit_type_codes: string[]
@@ -546,7 +548,9 @@ export type Database = {
           id?: string
           latest_date: string
           offer_expires_at?: string | null
+          offered_appointment_id?: string | null
           offered_start_at?: string | null
+          offered_visit_code?: string | null
           patient_id: string
           status?: Database["public"]["Enums"]["waitlist_status"]
           visit_type_codes: string[]
@@ -558,7 +562,9 @@ export type Database = {
           id?: string
           latest_date?: string
           offer_expires_at?: string | null
+          offered_appointment_id?: string | null
           offered_start_at?: string | null
+          offered_visit_code?: string | null
           patient_id?: string
           status?: Database["public"]["Enums"]["waitlist_status"]
           visit_type_codes?: string[]

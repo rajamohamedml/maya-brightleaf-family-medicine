@@ -16,6 +16,7 @@ import {
 } from "./scheduling.server";
 import { visitCodeForReason, WHAT_TO_BRING } from "./booking-rules";
 import { addDays, fmtSlot, localDateStr } from "./tz";
+import { refillSlot } from "./automations.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 const phone = z.string().trim().refine((p) => p.replace(/\D/g, "").length >= 10, "Enter a 10-digit phone number");
@@ -55,7 +56,8 @@ async function isStaffRequest() {
 }
 
 async function logRun(rule: string, minutes: number, details: Record<string, unknown>) {
-  await db().from("automation_runs").insert({ rule, actions_count: 1, minutes_saved: minutes, details: details as never });
+  const now = await getNow();
+  await db().from("automation_runs").insert({ rule, actions_count: 1, minutes_saved: minutes, run_at: now.toISOString(), details: details as never });
 }
 
 /* ---------- resolve visit type from reason ---------- */
@@ -171,9 +173,7 @@ async function findOrCreatePatient(p: z.infer<typeof patientInput>) {
   return { patient: data };
 }
 
-export const bookAppointment = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
-    z
+const bookInput = z
       .object({
         patient: patientInput,
         visit_type_code: z.string().max(40),
@@ -183,9 +183,10 @@ export const bookAppointment = createServerFn({ method: "POST" })
         source: z.enum(["form", "chat", "voice", "staff", "waitlist"]).default("form"),
         lead_id: z.string().uuid().optional(),
       })
-      .parse(d),
-  )
-  .handler(async ({ data }) => {
+      ;
+type BookInput = z.infer<typeof bookInput>;
+
+async function bookCore(data: BookInput) {
     if (data.source === "staff" && !(await isStaffRequest())) return err("forbidden", "Only signed-in staff can add visits.");
     const vt = await loadVisitType(data.visit_type_code);
     if (!vt) return err("unknown_visit_type", "That visit type isn't available.");
@@ -247,8 +248,16 @@ export const bookAppointment = createServerFn({ method: "POST" })
           `Please bring: ${WHAT_TO_BRING.join(", ")}.`,
         ].join("\n"),
         rule: "instant_confirmation",
+        sent_at: now.toISOString(),
       });
-    if (data.source !== "staff") await logRun("self_service_booking", 6, { appointment_id: appt.id });
+    if (data.source !== "staff")
+      await logRun(data.source === "waitlist" ? "waitlist_refill" : "self_service_booking", data.source === "waitlist" ? 10 : 6, {
+        appointment_id: appt.id,
+        action: data.source === "waitlist" ? "accepted" : "booked",
+        text: data.source === "waitlist"
+          ? `${patient.first_name} ${patient.last_name} accepted a waitlist offer: ${vt.name} on ${when}.`
+          : `${patient.first_name} ${patient.last_name} booked a ${vt.name} for ${when} — no staff needed.`,
+      });
     if (data.lead_id) await db().from("leads").update({ converted_appointment_id: appt.id }).eq("id", data.lead_id);
 
     return {
@@ -263,7 +272,11 @@ export const bookAppointment = createServerFn({ method: "POST" })
         first_name: patient.first_name,
       },
     };
-  });
+}
+
+export const bookAppointment = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => bookInput.parse(d))
+  .handler(({ data }) => bookCore(data));
 
 /* ---------- manage-appointment ---------- */
 async function loadByToken(t: string) {
@@ -317,6 +330,7 @@ export const manageAppointment = createServerFn({ method: "POST" })
     } else if (data.action === "cancel") {
       await db().from("appointments").update({ status: "cancelled" }).eq("id", a.id);
       await msg("cancellation", "Your visit is cancelled", `Your ${view.visit_name} on ${fmtSlot(a.start_at)} is cancelled. The time is now open for others.`);
+      await refillAfterChange(a.start_at, `${view.first_name} cancelled their ${view.visit_name} on ${fmtSlot(a.start_at)}`);
     } else {
       if (!data.new_start_at) return err("missing_time", "Please choose a new time.");
       const vt = await loadVisitType(view.visit_type_code);
@@ -334,6 +348,7 @@ export const manageAppointment = createServerFn({ method: "POST" })
         throw error;
       }
       await msg("reschedule", "Your visit has moved", `Your ${view.visit_name} moved from ${fmtSlot(a.start_at)} to ${fmtSlot(slot.start_at)} (Central Time).`);
+      await refillAfterChange(a.start_at, `${view.first_name} moved their ${view.visit_name} away from ${fmtSlot(a.start_at)}`);
     }
     const updated = await loadByToken(data.token);
     return { ok: true as const, visit: viewDto(updated!) };
@@ -472,3 +487,90 @@ export const upsertLead = createServerFn({ method: "POST" })
     if (error) throw error;
     return { id: ins.id };
   });
+
+/* ---------- waitlist refill (shared with the automation engine) ---------- */
+async function refillAfterChange(startAt: string, what: string) {
+  const now = await getNow();
+  const offered = await refillSlot(startAt, now, origin());
+  await logRun("waitlist_refill", 0, { action: offered ? "offered" : "freed", text: `${what}${offered ? ` — offered the time to ${offered} from the waitlist.` : ". No waitlist match."}` });
+}
+
+/* ---------- waitlist offer page ---------- */
+async function loadOffer(id: string) {
+  const { data } = await db()
+    .from("waitlist")
+    .select("id,status,offered_start_at,offer_expires_at,offered_visit_code,patients(first_name,last_name,dob,phone,email,insurer)")
+    .eq("id", id)
+    .maybeSingle();
+  return data;
+}
+
+export const getOffer = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const w = await loadOffer(data.id);
+    if (!w || !w.offered_start_at || !w.offered_visit_code) return err("not_found", "We couldn't find this offer.");
+    const now = await getNow();
+    const vt = await loadVisitType(w.offered_visit_code);
+    const live = w.status === "offered" && !!w.offer_expires_at && Date.parse(w.offer_expires_at) > now.getTime();
+    return {
+      ok: true as const,
+      offer: {
+        first_name: w.patients?.first_name ?? "",
+        visit_name: vt?.name ?? "Visit",
+        minutes: vt?.minutes ?? 0,
+        start_at: w.offered_start_at,
+        expires_at: w.offer_expires_at,
+        state: (w.status === "accepted" ? "accepted" : live ? "open" : "expired") as "accepted" | "open" | "expired",
+      },
+    };
+  });
+
+export const respondOffer = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), accept: z.boolean() }).parse(d))
+  .handler(async ({ data }) => {
+    const w = await loadOffer(data.id);
+    if (!w || !w.offered_start_at || !w.offered_visit_code || !w.patients) return err("not_found", "We couldn't find this offer.");
+    const now = await getNow();
+    if (w.status !== "offered" || !w.offer_expires_at || Date.parse(w.offer_expires_at) <= now.getTime())
+      return err("expired", "Sorry, this offer has ended. You're still welcome to book another time.");
+    const p = w.patients;
+    if (!data.accept) {
+      await db().from("waitlist").update({ status: "expired" }).eq("id", w.id);
+      await refillAfterChange(w.offered_start_at, `${p.first_name} ${p.last_name} said no thanks to ${fmtSlot(w.offered_start_at)}`);
+      return { ok: true as const, declined: true, token: null };
+    }
+    const vt = await loadVisitType(w.offered_visit_code);
+    if (!vt) return err("unknown_visit_type", "That visit type isn't available.");
+    const reason = vt.code === "medicare_awv" ? "physical" : (vt.code as "new_patient" | "physical" | "follow_up" | "sick" | "telehealth");
+    const res = await bookCore({
+      patient: { dob: p.dob, phone: p.phone, first_name: p.first_name, last_name: p.last_name, email: p.email, insurer: p.insurer },
+      visit_type_code: vt.code,
+      start_at: w.offered_start_at,
+      mode: vt.modes.includes("in_person") ? "in_person" : "telehealth",
+      reason_category: reason,
+      source: "waitlist",
+    });
+    if (!("ok" in res)) {
+      await db().from("waitlist").update({ status: "expired" }).eq("id", w.id);
+      return err("slot_taken", "Sorry, that time is no longer free. We'll keep looking.");
+    }
+    await db().from("waitlist").update({ status: "accepted" }).eq("id", w.id);
+    return { ok: true as const, declined: false, token: res.token };
+  });
+
+/* ---------- public impact counter (aggregate only, no personal data) ---------- */
+export const getPublicImpact = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const now = await getNow();
+    const { data } = await db()
+      .from("automation_runs")
+      .select("minutes_saved")
+      .gt("run_at", new Date(now.getTime() - 7 * 86400_000).toISOString())
+      .lte("run_at", now.toISOString());
+    const minutes = (data ?? []).reduce((t, r) => t + r.minutes_saved, 0);
+    return { hours: Math.round((minutes / 60) * 10) / 10 };
+  } catch {
+    return { hours: 0 };
+  }
+});
