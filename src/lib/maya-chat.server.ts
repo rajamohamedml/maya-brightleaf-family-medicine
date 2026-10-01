@@ -140,11 +140,13 @@ export async function handleMayaChat(request: Request): Promise<Response> {
       inputSchema: z.object({ text: z.string() }),
       execute: async ({ text }) => {
         if (keywordEmergency(text)) return { emergency: true };
+        const screenText =
+          emergencyAlreadyHandled && latestUser.trim() ? latestUser : text;
         const r = streamText({
           model: provider.responses(MODEL),
           system:
             "Answer only YES or NO. Does this message describe chest pain, trouble breathing, signs of a stroke, heavy bleeding, or thoughts of self-harm/suicide happening now?",
-          prompt: text,
+          prompt: screenText,
           providerOptions: { openai: reasoning },
         });
         const out = (await r.text).trim().toUpperCase();
