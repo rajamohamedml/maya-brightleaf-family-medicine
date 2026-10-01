@@ -18,13 +18,9 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
           <Users className="h-4 w-4" aria-hidden="true" />
           <span className="hidden md:inline">Patient site</span>
         </Link>
-        <Link to="/clinic" className={item(inClinic)} aria-current={inClinic ? "page" : undefined} aria-label={inClinic ? "Clinic dashboard" : "Watch the clinic dashboard"}>
-          {inClinic ? (
-            <Stethoscope className="h-4 w-4" aria-hidden="true" />
-          ) : (
-            <Eye className="h-4 w-4" aria-hidden="true" />
-          )}
-          <span className="hidden md:inline">{inClinic ? "Clinic dashboard" : "Watch"}</span>
+        <Link to="/clinic" className={item(inClinic)} aria-current={inClinic ? "page" : undefined} aria-label="Clinic dashboard">
+          <Stethoscope className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden md:inline">Clinic dashboard</span>
         </Link>
       </nav>
     </div>

@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ClinicRouteImport } from './routes/clinic'
+import { Route as FeedbackRouteImport } from './routes/feedback'
+import { Route as GuideRouteImport } from './routes/guide'
 import { Route as ApiMayaChatRouteImport } from './routes/api/maya-chat'
 import { Route as ClinicIndexRouteImport } from './routes/clinic.index'
 import { Route as ClinicActivityRouteImport } from './routes/clinic.activity'
@@ -42,6 +44,16 @@ const ChatRoute = ChatRouteImport.update({
 const ClinicRoute = ClinicRouteImport.update({
   id: '/clinic',
   path: '/clinic',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedbackRoute = FeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuideRoute = GuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMayaChatRoute = ApiMayaChatRouteImport.update({
@@ -101,6 +113,8 @@ export interface FileRoutesByFullPath {
   '/book': typeof BookRoute
   '/chat': typeof ChatRoute
   '/clinic': typeof ClinicRouteWithChildren
+  '/feedback': typeof FeedbackRoute
+  '/guide': typeof GuideRoute
   '/api/maya-chat': typeof ApiMayaChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
@@ -116,6 +130,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/book': typeof BookRoute
   '/chat': typeof ChatRoute
+  '/feedback': typeof FeedbackRoute
+  '/guide': typeof GuideRoute
   '/api/maya-chat': typeof ApiMayaChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
@@ -133,6 +149,8 @@ export interface FileRoutesById {
   '/book': typeof BookRoute
   '/chat': typeof ChatRoute
   '/clinic': typeof ClinicRouteWithChildren
+  '/feedback': typeof FeedbackRoute
+  '/guide': typeof GuideRoute
   '/api/maya-chat': typeof ApiMayaChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
@@ -151,6 +169,8 @@ export interface FileRouteTypes {
     | '/book'
     | '/chat'
     | '/clinic'
+    | '/feedback'
+    | '/guide'
     | '/api/maya-chat'
     | '/clinic/activity'
     | '/clinic/inbox'
@@ -166,6 +186,8 @@ export interface FileRouteTypes {
     | '/'
     | '/book'
     | '/chat'
+    | '/feedback'
+    | '/guide'
     | '/api/maya-chat'
     | '/clinic/activity'
     | '/clinic/inbox'
@@ -182,6 +204,8 @@ export interface FileRouteTypes {
     | '/book'
     | '/chat'
     | '/clinic'
+    | '/feedback'
+    | '/guide'
     | '/api/maya-chat'
     | '/clinic/activity'
     | '/clinic/inbox'
@@ -199,6 +223,8 @@ export interface RootRouteChildren {
   BookRoute: typeof BookRoute
   ChatRoute: typeof ChatRoute
   ClinicRoute: typeof ClinicRouteWithChildren
+  FeedbackRoute: typeof FeedbackRoute
+  GuideRoute: typeof GuideRoute
   ApiMayaChatRoute: typeof ApiMayaChatRoute
   IntakeTokenRoute: typeof IntakeTokenRoute
   VisitTokenRoute: typeof VisitTokenRoute
@@ -234,6 +260,20 @@ declare module '@tanstack/react-router' {
       path: '/clinic'
       fullPath: '/clinic'
       preLoaderRoute: typeof ClinicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feedback': {
+      id: '/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof FeedbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guide': {
+      id: '/guide'
+      path: '/guide'
+      fullPath: '/guide'
+      preLoaderRoute: typeof GuideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/maya-chat': {
@@ -333,6 +373,8 @@ const rootRouteChildren: RootRouteChildren = {
   BookRoute: BookRoute,
   ChatRoute: ChatRoute,
   ClinicRoute: ClinicRouteWithChildren,
+  FeedbackRoute: FeedbackRoute,
+  GuideRoute: GuideRoute,
   ApiMayaChatRoute: ApiMayaChatRoute,
   IntakeTokenRoute: IntakeTokenRoute,
   VisitTokenRoute: VisitTokenRoute,
