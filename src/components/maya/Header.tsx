@@ -9,11 +9,11 @@ const focus =
 function SideSwitch({ inClinic }: { inClinic: boolean }) {
   const item = (active: boolean) =>
     `flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-sm transition-colors duration-150 md:px-3 ${focus} ${
-      active ? "bg-primary/20 font-semibold text-foreground" : "text-muted-foreground hover:text-foreground"
+      active ? "font-semibold text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
   return (
     <div className="flex items-center gap-1.5">
-      <nav aria-label="Switch view" className="flex rounded-lg border border-border bg-card/60 p-0.5">
+      <nav aria-label="Switch view" className="flex items-center">
         <Link to="/" className={item(!inClinic)} aria-current={!inClinic ? "page" : undefined} aria-label="Patient site">
           <Users className="h-4 w-4" aria-hidden="true" />
           <span className="hidden md:inline">Patient site</span>
@@ -34,6 +34,7 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
 export function Header() {
   const location = useLocation();
   const inClinic = location.pathname.startsWith("/clinic");
+  const isLogin = location.pathname === "/clinic/login";
   const link = `flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-foreground ${focus}`;
 
   return (
@@ -53,11 +54,12 @@ export function Header() {
               <Mic className="h-4 w-4" aria-hidden="true" /> Talk to Maya
             </Link>
           )}
-          {inClinic ? (
+          {inClinic && !isLogin && (
             <Link to="/" className={`${link} hidden sm:flex`}>
               View patient site <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
-          ) : (
+          )}
+          {!inClinic && (
             <Link to="/clinic" className={`${link} hidden sm:flex`}>
               <Lock className="h-3.5 w-3.5" aria-hidden="true" /> Clinic login
             </Link>
