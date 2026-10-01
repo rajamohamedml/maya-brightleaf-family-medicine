@@ -7,6 +7,7 @@ import { addDays, isoDow, localDateStr, localMinutes, zonedToUtc } from "./tz";
 import { getRequest } from "@tanstack/react-start/server";
 import { resolveAppUrl } from "./app-url.server";
 import { refillFreedSlot, runAutomations, summaryText } from "./automations.server";
+import { findBlockConflicts, type BlockConflict } from "./scheduling.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const uuid = z.string().uuid();
@@ -192,20 +193,44 @@ export const getWeek = createServerFn({ method: "POST" })
     return { monday, today: localDateStr(now), appts: a.data as any[], blocks: b.data as any[] };
   });
 
+const blockInput = (d: unknown) =>
+  z
+    .object({ date: dateStr, start: z.number().int().min(0).max(1440), end: z.number().int().min(0).max(1440), note: z.string().trim().max(120).optional() })
+    .refine((v) => v.end > v.start, "End must be after start")
+    .parse(d);
+
+type BlockCheck = { conflicts: BlockConflict[]; past: boolean };
+async function checkBlock(sb: any, d: { date: string; start: number; end: number }): Promise<BlockCheck & { startIso: string; endIso: string }> {
+  const startIso = zonedToUtc(d.date, d.start).toISOString();
+  const endIso = zonedToUtc(d.date, d.end).toISOString();
+  const { now } = await clinicNow(sb);
+  const conflicts = await findBlockConflicts(sb, startIso, endIso);
+  return { conflicts, past: new Date(endIso) <= now, startIso, endIso };
+}
+
+/** Live check for the Block time panel. */
+export const checkBlockConflicts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(blockInput)
+  .handler(async ({ data, context }): Promise<BlockCheck> => {
+    await assertStaff(context);
+    const { conflicts, past } = await checkBlock(context.supabase, data);
+    return { conflicts, past };
+  });
+
+/** Creates a block only when no booked visit (incl. 5-min buffer) overlaps and it doesn't end in the past. */
 export const addBlock = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
-      .object({ date: dateStr, start: z.number().int().min(0).max(1440), end: z.number().int().min(0).max(1440), note: z.string().trim().max(120).optional() })
-      .refine((v) => v.end > v.start, "End must be after start")
-      .parse(d),
-  )
-  .handler(async ({ data, context }) => {
+  .inputValidator(blockInput)
+  .handler(async ({ data, context }): Promise<{ ok: true } | { ok: false; reason: "conflict" | "past"; conflicts: BlockConflict[] }> => {
     await assertStaff(context);
+    const c = await checkBlock(context.supabase, data);
+    if (c.past) return { ok: false, reason: "past", conflicts: [] };
+    if (c.conflicts.length) return { ok: false, reason: "conflict", conflicts: c.conflicts };
     const { error } = await context.supabase.from("schedule_blocks").insert({
       kind: "blocked",
-      start_at: zonedToUtc(data.date, data.start).toISOString(),
-      end_at: zonedToUtc(data.date, data.end).toISOString(),
+      start_at: c.startIso,
+      end_at: c.endIso,
       note: data.note || "Blocked",
     });
     if (error) throw error;

@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Ban, ChevronLeft, ChevronRight, Loader2, Plus, SwatchBook, Video, XCircle } from "lucide-react";
-import { addBlock, getWeek, listPatients, setVisitStatus } from "@/lib/staff.functions";
+import { addBlock, checkBlockConflicts, getWeek, listPatients, setVisitStatus } from "@/lib/staff.functions";
 import { bookAppointment } from "@/lib/booking.functions";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
 import { EmptyState } from "@/components/maya/EmptyState";
@@ -147,7 +147,7 @@ function Schedule() {
 
 
 
-      {w && panel === "block" && <BlockForm days={days} onDone={() => setPanel("none")} />}
+      {w && panel === "block" && <BlockForm days={days} onDone={() => setPanel("none")} onViewVisit={setOpenId} />}
       {panel === "visit" && <AddVisitForm onDone={() => setPanel("none")} />}
 
       {q.isLoading ? (
@@ -204,7 +204,7 @@ function Schedule() {
                         key={a.id}
                         onClick={() => setOpenId(a.id)}
                         className={cn(
-                          "absolute inset-x-1 overflow-hidden rounded-md border-l-4 border-y border-r px-1.5 text-left text-sm leading-tight text-foreground transition-[filter] duration-200 hover:brightness-110",
+                          "absolute inset-x-1 z-[5] overflow-hidden rounded-md border-l-4 border-y border-r px-1.5 text-left text-sm leading-tight text-foreground transition-[filter] duration-200 hover:brightness-110",
                           VISIT_SCHEDULE_COLOR[a.visit_types?.code] ?? "bg-card border-border",
                           done && "opacity-60",
                         )}
@@ -257,46 +257,70 @@ function Schedule() {
   );
 }
 
-function BlockForm({ days, onDone }: { days: string[]; onDone: () => void }) {
+function BlockForm({ days, onDone, onViewVisit }: { days: string[]; onDone: () => void; onViewVisit: (id: string) => void }) {
   const qc = useQueryClient();
   const add = useServerFn(addBlock);
+  const check = useServerFn(checkBlockConflicts);
   const [date, setDate] = useState(days[0]);
   const [start, setStart] = useState(9 * 60);
   const [end, setEnd] = useState(10 * 60);
   const [note, setNote] = useState("");
+  const [rejected, setRejected] = useState<{ id: string; label: string }[] | null>(null);
+  const bad = end <= start;
+  const live = useQuery({
+    queryKey: ["staff", "block-check", date, start, end],
+    queryFn: () => check({ data: { date, start, end } }),
+    enabled: !bad,
+  });
   const m = useMutation({
     mutationFn: () => add({ data: { date, start, end, note } }),
-    onSuccess: () => {
-      toast.success("Time blocked");
+    onSuccess: (r) => {
+      if (r.ok) {
+        toast.success("Time blocked");
+        qc.invalidateQueries({ queryKey: ["staff"] });
+        onDone();
+        return;
+      }
+      if (r.reason === "past") {
+        toast.error("Couldn't block this time — it has already passed.");
+      } else {
+        setRejected(r.conflicts);
+        toast.error("Couldn't block this time — a visit was just booked here.");
+      }
       qc.invalidateQueries({ queryKey: ["staff"] });
-      onDone();
     },
     onError: () => toast.error("Couldn't block that time. Please try again."),
   });
-  const bad = end <= start;
+  const conflicts = rejected ?? live.data?.conflicts ?? [];
+  const past = !bad && !!live.data?.past;
+  const blocked = bad || past || conflicts.length > 0 || live.isFetching;
+  const change = <T,>(set: (v: T) => void) => (v: T) => {
+    setRejected(null);
+    set(v);
+  };
   return (
     <form
       onSubmit={(e: FormEvent) => {
         e.preventDefault();
-        if (!bad) m.mutate();
+        if (!blocked) m.mutate();
       }}
       className="surface-tile mt-4 grid gap-3 rounded-xl border border-border p-4 sm:grid-cols-4"
     >
       <div className="space-y-1">
         <Label htmlFor="b-day">Day</Label>
-        <select id="b-day" className={selectCls} value={date} onChange={(e) => setDate(e.target.value)}>
+        <select id="b-day" className={selectCls} value={date} onChange={(e) => change(setDate)(e.target.value)}>
           {days.map((d) => <option key={d} value={d}>{fmtDay(zonedToUtc(d, 720).toISOString())}</option>)}
         </select>
       </div>
       <div className="space-y-1">
         <Label htmlFor="b-start">From</Label>
-        <select id="b-start" className={selectCls} value={start} onChange={(e) => setStart(Number(e.target.value))}>
+        <select id="b-start" className={selectCls} value={start} onChange={(e) => change(setStart)(Number(e.target.value))}>
           {TIMES.slice(0, -1).map((t) => <option key={t} value={t}>{minToLabel(t)}</option>)}
         </select>
       </div>
       <div className="space-y-1">
         <Label htmlFor="b-end">To</Label>
-        <select id="b-end" className={selectCls} value={end} onChange={(e) => setEnd(Number(e.target.value))} aria-invalid={bad}>
+        <select id="b-end" className={selectCls} value={end} onChange={(e) => change(setEnd)(Number(e.target.value))} aria-invalid={bad}>
           {TIMES.slice(1).map((t) => <option key={t} value={t}>{minToLabel(t)}</option>)}
         </select>
       </div>
@@ -304,10 +328,34 @@ function BlockForm({ days, onDone }: { days: string[]; onDone: () => void }) {
         <Label htmlFor="b-note">Reason (optional)</Label>
         <Input id="b-note" className="min-h-11" maxLength={120} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Staff meeting" />
       </div>
-      {bad && <p role="alert" className="text-sm text-destructive sm:col-span-4">Pick an end time after the start time.</p>}
+      <div aria-live="polite" className="sm:col-span-4">
+        {bad && <p role="alert" className="text-sm text-destructive">Pick an end time after the start time.</p>}
+        {past && <p role="alert" className="text-sm text-warning">This time has already passed. Pick a later time.</p>}
+        {!bad && conflicts.length > 0 && (
+          <div role="alert" className="rounded-lg border border-warning/50 bg-warning/10 p-3">
+            <p className="flex items-start gap-2 font-semibold text-foreground">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" aria-hidden="true" />
+              You can't block this time — it overlaps {conflicts.length} booked {conflicts.length === 1 ? "visit" : "visits"}:
+            </p>
+            <ul className="mt-2 space-y-1">
+              {conflicts.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm">{c.label}</span>
+                  <Button type="button" variant="ghost" className="min-h-11 text-primary" onClick={() => onViewVisit(c.id)}>
+                    View visit
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <Button type="button" variant="outline" className="mt-2 min-h-11" onClick={() => document.getElementById("b-start")?.focus()}>
+              Pick a different time
+            </Button>
+          </div>
+        )}
+      </div>
       <div className="flex gap-2 sm:col-span-4">
-        <Button type="submit" variant="cta" className="min-h-11" disabled={m.isPending || bad}>
-          {m.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Block time
+        <Button type="submit" variant="cta" className="min-h-11" disabled={m.isPending || blocked}>
+          {(m.isPending || live.isFetching) && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Block time
         </Button>
         <Button type="button" variant="ghost" className="min-h-11" onClick={onDone}>Close</Button>
       </div>
