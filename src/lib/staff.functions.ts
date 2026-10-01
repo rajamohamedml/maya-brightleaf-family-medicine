@@ -77,7 +77,8 @@ export const getToday = createServerFn({ method: "POST" })
     await assertStaff(context);
     const sb = context.supabase;
     const clock = await clinicNow(sb);
-    const simulated = clock.now.getTime() !== 0 && (await sb.from("clinic_settings").select("demo_now").eq("id", 1).maybeSingle()).data?.demo_now != null;
+    const { data: st } = await sb.from("clinic_settings").select("demo_now").eq("id", 1).maybeSingle();
+    const simulated = st?.demo_now != null;
     const now = input.view === "real" ? new Date() : clock.now;
     const hours = clock.hours;
     const today = localDateStr(now);

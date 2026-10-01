@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Building2, CalendarCheck, CheckCircle2, ClipboardCheck, ClipboardX, Clock, Loader2, MapPin, Sparkles, UserX, Video } from "lucide-react";
 import { getToday, setVisitStatus, bookRecall } from "@/lib/staff.functions";
@@ -59,6 +59,9 @@ function VisitTags({ v }: { v: Visit }) {
     </div>
   );
 }
+
+const fmtDayHeading = (date: string) =>
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "long", month: "short", day: "numeric" }).format(zonedToUtc(date, 12 * 60));
 
 function Today() {
   const fetchToday = useServerFn(getToday);
