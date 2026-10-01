@@ -5,3 +5,4 @@
 
 - [x] Maya: find/cancel/reschedule visits (chat + voice)
 - [x] Today screen: big date, demo pill + link, Demo day | Real today switch (session), reset → real date
+- [ ] Fix emergency flow: check only latest message; pin collapsed 911 banner after first card; normal replies after; clarifications resume booking; voice must not loop
