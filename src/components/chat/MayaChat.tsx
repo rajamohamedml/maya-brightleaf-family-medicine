@@ -15,6 +15,8 @@ import {
   Phone,
   Send,
   Square,
+  CalendarClock,
+  XCircle,
 } from "lucide-react";
 import {
   Conversation,
@@ -40,6 +42,7 @@ const STARTERS = [
   "I'm new and need a physical",
   "I'm sick today",
   "Reschedule my visit",
+  "Cancel a visit",
   "Request a refill",
   "Do you take Aetna?",
 ];
@@ -132,7 +135,76 @@ function TaskCard({ kind }: { kind: string }) {
   );
 }
 
-function Parts({ m, onPick }: { m: UIMessage; onPick: (s: Slot) => void }) {
+type MyVisit = { id: string; visit_name: string; start_at: string; label: string; mode: string };
+
+function MyVisitsCard({ visits, onSend }: { visits: MyVisit[]; onSend: (t: string) => void }) {
+  if (!visits.length)
+    return <p className="rounded-xl border border-border bg-card p-4 text-muted-foreground">No upcoming visits found.</p>;
+  return (
+    <div className="flex flex-col gap-2" role="group" aria-label="Your upcoming visits">
+      {visits.map((v) => (
+        <div key={v.id} className="rounded-xl border border-border bg-card p-4">
+          <p className="font-semibold">{v.visit_name}</p>
+          <p className="text-muted-foreground">
+            {fmtLongDay(v.start_at)} · {fmtTime(v.start_at)} · {v.mode === "telehealth" ? "Video" : "In person"}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={() => onSend(`Reschedule my ${v.visit_name} on ${v.label}`)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90">
+              <CalendarClock className="h-4 w-4" aria-hidden="true" /> Reschedule
+            </button>
+            <button type="button" onClick={() => onSend(`Cancel my ${v.visit_name} on ${v.label}`)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input px-4 font-semibold hover:bg-accent">
+              <XCircle className="h-4 w-4" aria-hidden="true" /> Cancel
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChangedCard({ o }: { o: any }) {
+  if (o.action === "reschedule")
+    return (
+      <div className="rounded-xl border border-success/50 bg-success/10 p-4">
+        <p className="flex items-center gap-2 font-semibold text-success">
+          <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> Rescheduled
+        </p>
+        <p className="mt-2 font-semibold">{o.visit_name}</p>
+        <p className="text-muted-foreground">
+          {fmtLongDay(o.new_start_at)} · {fmtTime(o.new_start_at)} Central Time
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link to="/visit/$token" params={{ token: o.manage_token }}
+            className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent">
+            Manage visit
+          </Link>
+          <button type="button"
+            onClick={() => addVisitToCalendar({ name: o.visit_name, start_at: o.new_start_at, end_at: o.new_end_at, mode: o.mode })}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent">
+            <CalendarPlus className="h-4 w-4" aria-hidden="true" /> Add to calendar
+          </button>
+        </div>
+      </div>
+    );
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 p-4">
+      <p className="flex items-center gap-2 font-semibold text-muted-foreground">
+        <XCircle className="h-5 w-5" aria-hidden="true" /> Cancelled
+      </p>
+      <p className="mt-2 font-semibold">{o.visit_name}</p>
+      <p className="text-muted-foreground line-through">
+        {fmtLongDay(o.old_start_at)} · {fmtTime(o.old_start_at)}
+      </p>
+      <Link to="/book" className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90">
+        Book again
+      </Link>
+    </div>
+  );
+}
+
+function Parts({ m, onPick, onSend }: { m: UIMessage; onPick: (s: Slot) => void; onSend: (t: string) => void }) {
   return (
     <>
       {m.parts.map((p, i) => {
@@ -176,6 +248,8 @@ function Parts({ m, onPick }: { m: UIMessage; onPick: (s: Slot) => void }) {
           );
         if (t.type === "tool-book_appointment" && o?.ok)
           return <BookedCard key={i} b={o as Booked} />;
+        if (t.type === "tool-find_my_visits" && o?.found) return <MyVisitsCard key={i} visits={o.visits} onSend={onSend} />;
+        if ((t.type === "tool-cancel_visit" || t.type === "tool-reschedule_visit") && o?.ok) return <ChangedCard key={i} o={o} />;
         if (t.type === "tool-create_task" && o?.ok) return <TaskCard key={i} kind={o.kind} />;
         return null;
       })}
@@ -347,7 +421,7 @@ export function MayaChat({
               {m.role === "assistant" && <MayaAvatar />}
               <Message from={m.role}>
                 <MessageContent className="text-[15px] group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground">
-                  <Parts m={m} onPick={(s) => send(`Book the ${s.label} slot`)} />
+                  <Parts m={m} onPick={(s) => send(`Book the ${s.label} slot`)} onSend={send} />
                 </MessageContent>
               </Message>
             </div>
