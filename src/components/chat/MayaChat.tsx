@@ -39,6 +39,8 @@ import { createTask } from "@/lib/booking.functions";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
 import { fmtLongDay, fmtTime } from "@/lib/tz";
 import { IDLE_PROMPTS, VoicePanel, VOICE_FAREWELL, VOICE_GREETING } from "./VoicePanel";
+import type { VoiceState } from "./VoicePanel";
+import { ActiveChatFrame, type ChatActivity } from "./ActiveChatFrame";
 import { upsertLead } from "@/lib/booking.functions";
 
 const TEXT_IDLE_MS = [45_000, 30_000, 30_000];
@@ -383,9 +385,11 @@ function CallbackForm({ onDone }: { onDone: () => void }) {
 export function MayaChat({
   voice = false,
   embedded = false,
+  onAssistantMessage,
 }: {
   voice?: boolean;
   embedded?: boolean;
+  onAssistantMessage?: () => void;
 }) {
   const { messages, sendMessage, setMessages, status, error, stop } = useChat({
     transport: new DefaultChatTransport({ api: "/api/maya-chat" }),
@@ -393,6 +397,7 @@ export function MayaChat({
   const [input, setInput] = useState("");
   const [callback, setCallback] = useState(false);
   const [voiceSession, setVoiceSession] = useState(false);
+  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [voiceStartSignal, setVoiceStartSignal] = useState(0);
   const busy = status === "submitted" || status === "streaming";
   const wrap = useRef<HTMLDivElement>(null);
@@ -488,26 +493,38 @@ export function MayaChat({
     (status === "streaming" &&
       last?.role === "assistant" &&
       !last.parts.some((p) => p.type === "text" && p.text));
+  const previousBusy = useRef(false);
+  useEffect(() => {
+    if (previousBusy.current && !busy && messages.at(-1)?.role === "assistant") onAssistantMessage?.();
+    previousBusy.current = busy;
+  }, [busy, messages, onAssistantMessage]);
+
+  const activity: ChatActivity = ended
+    ? "ended"
+    : voiceSession && voiceState !== "idle"
+      ? voiceState
+      : busy
+        ? "thinking"
+        : "idle";
+  const voiceStatus = voiceSession && voiceState !== "idle"
+    ? { listening: "Listening...", thinking: "Thinking...", speaking: "Speaking..." }[voiceState]
+    : null;
 
   return (
     <OpenChatPage.Provider value={setPage}>
     <ChatPagePanel page={page} onClose={() => { setPage(null); setTimeout(focus, 0); }} />
-    <div
-      ref={wrap}
-      className={`surface-tile flex flex-col overflow-hidden rounded-xl border border-border ${embedded ? "h-[min(88vh,940px)] min-h-[600px]" : "h-[min(75vh,720px)]"}`}
-    >
+    <ActiveChatFrame state={activity} className={embedded ? "h-[min(88vh,940px)] min-h-[600px]" : "h-[min(75vh,720px)]"}>
+    <div ref={wrap} className="surface-tile flex h-full min-h-0 flex-col overflow-hidden rounded-[14.5px]">
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <MayaAvatar />
-        <div>
-          <p className="text-base font-medium">
-            Meet Maya — your anytime front desk
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-base font-medium">
+            Maya - online
+            <span className="h-2 w-2 shrink-0 rounded-full bg-success" aria-hidden="true" />
           </p>
-          <p className="text-xs text-primary italic">Care that starts the moment you reach out</p>
+          <p className="truncate text-xs text-primary italic">Care that starts the moment you reach out</p>
         </div>
-        <span className="ml-auto inline-flex items-center gap-2 text-sm text-success">
-          <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
-          Online
-        </span>
+        {voiceStatus && <span aria-live="polite" className="ml-auto text-sm font-medium text-primary">{voiceStatus}</span>}
       </div>
 
       <Conversation className="flex-1">
@@ -664,6 +681,7 @@ export function MayaChat({
               emergency={emergency}
               onIdlePrompt={addMaya}
               onIdleClose={closeChat}
+              onStateChange={setVoiceState}
             />
             <PromptInputSubmit
               status={status}
@@ -698,6 +716,7 @@ export function MayaChat({
         {callback && <CallbackForm onDone={() => setCallback(false)} />}
       </div>
     </div>
+    </ActiveChatFrame>
     </OpenChatPage.Provider>
   );
 }
