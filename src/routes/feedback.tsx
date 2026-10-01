@@ -21,7 +21,7 @@ export default function FeedbackPage() {
 
   return (
     <div className="mx-auto w-full max-w-lg px-4 py-10 lg:px-6">
-      <h1 className="text-3xl font-semibold tracking-tight">Feedback</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Feedback</h1>
       <p className="mt-2 text-muted-foreground">
         Tell us what worked and what didn't. Dr. Rahman reads every note.
       </p>

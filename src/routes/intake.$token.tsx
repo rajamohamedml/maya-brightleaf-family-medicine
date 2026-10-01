@@ -75,7 +75,7 @@ function IntakePage() {
       <PageShell>
         <div className="mx-auto max-w-xl text-center" aria-live="polite">
           <CheckCircle2 className="mx-auto h-16 w-16 text-success" aria-hidden="true" />
-          <h1 className="mt-3 text-3xl font-semibold">Thank you, {v.first_name}!</h1>
+          <h1 className="mt-3 text-2xl font-semibold">Thank you, {v.first_name}!</h1>
           <p className="mt-2 text-muted-foreground">Your intake form is done. See you {fmtSlot(v.start_at)}.</p>
           <Button asChild variant="outline" className="mt-6"><Link to="/visit/$token" params={{ token }}>View my visit</Link></Button>
         </div>

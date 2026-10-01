@@ -109,7 +109,7 @@ function ActivityPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div aria-live="polite">
             <p className="text-sm text-muted-foreground">{fmtLongDay(d.now)}</p>
-            <p className="text-3xl font-semibold tabular-nums">{fmtTime(d.now)}</p>
+            <p className="text-2xl font-semibold tabular-nums">{fmtTime(d.now)}</p>
           </div>
           {d.simulated ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-3 py-1 text-sm font-semibold text-warning">
@@ -222,7 +222,7 @@ function Stat({ icon: Icon, value, label, sub }: { icon: LucideIcon; value: stri
   return (
     <div className="surface-tile rounded-xl border border-border p-4">
       <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
-      <p className="mt-2 text-3xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
       <p className="text-sm">{label}</p>
       {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
     </div>

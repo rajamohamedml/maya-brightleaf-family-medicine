@@ -87,7 +87,7 @@ export function VoicePanel({
 
   useEffect(() => {
     ended.current = false;
-    setSupported(!!getRecCtor() && "speechSynthesis" in window);
+    setSupported(!!getRecCtor());
     setConsented(localStorage.getItem(CONSENT_KEY) === "1");
     window.speechSynthesis?.getVoices();
     return () => {
@@ -102,7 +102,7 @@ export function VoicePanel({
     const Ctor = getRecCtor();
     if (!Ctor || ended.current) return;
     speakToken.current++;
-    window.speechSynthesis.cancel();
+    window.speechSynthesis?.cancel();
     recRef.current?.abort();
     const rec = new Ctor();
     rec.lang = "en-US";
@@ -171,6 +171,7 @@ export function VoicePanel({
     greeted.current = true;
     const speech = window.speechSynthesis;
     if (!speech) {
+      setState("idle");
       listen();
       return;
     }
@@ -215,6 +216,12 @@ export function VoicePanel({
       : "";
     if (!text) {
       setState("idle");
+      return;
+    }
+    if (!("speechSynthesis" in window)) {
+      setState("idle");
+      if (handsFreeRef.current && active.current) listen();
+      else active.current = false;
       return;
     }
     const token = ++speakToken.current;

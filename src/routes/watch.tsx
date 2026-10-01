@@ -27,7 +27,7 @@ function WatchPage() {
         <Home className="h-5 w-5" aria-hidden="true" />
         <span className="text-sm font-semibold">Home</span>
       </Link>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight">Watch the demo</h1>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight">Watch the demo</h1>
       <p className="mt-2 text-muted-foreground">A quick tour of booking a visit and using the clinic dashboard.</p>
       <div className="mt-8 flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card text-center">
         <PlayCircle className="h-16 w-16 text-primary" aria-hidden="true" />

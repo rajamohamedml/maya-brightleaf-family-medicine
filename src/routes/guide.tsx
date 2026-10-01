@@ -51,7 +51,7 @@ const sections = [
 export default function GuidePage() {
   return (
     <div className="mx-auto w-full max-w-[1100px] px-4 py-10 lg:px-6">
-      <h1 className="text-3xl font-semibold tracking-tight">Patient guide</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Patient guide</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground">
         Everything you need to know before your visit to Brightleaf Family Medicine.
       </p>

@@ -256,7 +256,7 @@ function BookPage() {
       <PageShell>
         <div role="alert" className="mx-auto max-w-xl rounded-xl border-4 border-destructive p-6 text-center sm:p-10">
           <AlertOctagon className="mx-auto h-14 w-14 text-destructive" aria-hidden="true" />
-          <h1 ref={headingRef} tabIndex={-1} className="mt-4 text-3xl font-semibold outline-none">{EMERGENCY_MESSAGE}</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="mt-4 text-2xl font-semibold outline-none">{EMERGENCY_MESSAGE}</h1>
           <p className="mt-3 text-muted-foreground">Please don't wait for a booking. Get help right away.</p>
           <div className="mt-6 flex flex-col gap-3">
             <Button asChild variant="destructive" size="lg"><a href="tel:911"><Phone /> Call 911</a></Button>
@@ -273,7 +273,7 @@ function BookPage() {
         <div className="mx-auto max-w-xl space-y-6">
           <div className="text-center">
             <CheckCircle2 className="mx-auto h-16 w-16 text-success" aria-hidden="true" />
-            <h1 ref={headingRef} tabIndex={-1} className="mt-3 text-3xl font-semibold outline-none" aria-live="polite">
+            <h1 ref={headingRef} tabIndex={-1} className="mt-3 text-2xl font-semibold outline-none" aria-live="polite">
               You're booked — confirmed
             </h1>
             <p className="mt-2 text-muted-foreground">We sent the details to your email.</p>
@@ -498,7 +498,7 @@ function BookPage() {
 function StepBody({ title, headingRef, children }: { title: string; headingRef: React.RefObject<HTMLHeadingElement | null>; children: ReactNode }) {
   return (
     <section>
-      <h1 ref={headingRef} tabIndex={-1} className="mb-5 text-2xl font-semibold outline-none sm:text-3xl">{title}</h1>
+      <h1 ref={headingRef} tabIndex={-1} className="mb-5 text-2xl font-semibold outline-none">{title}</h1>
       {children}
     </section>
   );
@@ -570,7 +570,7 @@ function OtherRequest({ headingRef, onBack, onDone }: { headingRef: React.RefObj
   return (
     <section>
       <Button variant="ghost" className="-ml-3 mb-2" onClick={onBack}><ArrowLeft /> Back</Button>
-      <h1 ref={headingRef} tabIndex={-1} className="mb-2 text-2xl font-semibold outline-none sm:text-3xl">How can we help?</h1>
+      <h1 ref={headingRef} tabIndex={-1} className="mb-2 text-2xl font-semibold outline-none">How can we help?</h1>
       <p className="mb-5 flex items-center gap-2 text-muted-foreground"><MessageSquare className="h-4 w-4" aria-hidden="true" /> Our team will get back to you. Please don't include health details.</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="o-name" label="Your name" autoComplete="name" value={f.name} error={e.name} onChange={(ev) => setF({ ...f, name: ev.target.value })} />
