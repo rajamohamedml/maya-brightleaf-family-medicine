@@ -99,9 +99,6 @@ function ClinicLayout() {
           </ul>
           <div className="ml-auto flex min-w-max items-center gap-2 border-l border-border pl-3">
             <span className="hidden max-w-52 truncate text-sm text-muted-foreground lg:inline">{ctx.email}</span>
-            <Button variant="ghost" className="min-h-11 px-3 text-muted-foreground" onClick={signOut}>
-              <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" /> Sign out
-            </Button>
           </div>
         </div>
       </nav>
