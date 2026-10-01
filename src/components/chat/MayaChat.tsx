@@ -166,6 +166,10 @@ export function MayaChat({ voice = false, embedded = false }: { voice?: boolean;
   const busy = status === "submitted" || status === "streaming";
   const wrap = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (voice) wrap.current?.querySelector<HTMLButtonElement>('button[aria-label="Start talking"]')?.click();
+  }, [voice]);
+
   const sendVoice = useCallback((text: string) => {
     sendMessage({ text }, { body: { channel: "voice" } });
     setInput("");

@@ -158,6 +158,7 @@ export function VoicePanel({
     }
     if (state === "listening") return stopListening();
     if (state === "thinking") return;
+    ended.current = false;
     listen(); // also barges in while Maya is speaking
   };
 
@@ -238,6 +239,7 @@ export function VoicePanel({
                   localStorage.setItem(CONSENT_KEY, "1");
                   setConsented(true);
                   setShowNotice(false);
+                  ended.current = false;
                   window.setTimeout(listen, 0);
                 }}
               >
