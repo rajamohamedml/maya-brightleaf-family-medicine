@@ -2,12 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, Check, CheckCircle2, Clock, Hourglass, ListTodo, Loader2, Phone, UserRoundX } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Check, CheckCircle2, Clock, Hourglass, Info, ListTodo, Loader2, Phone, UserRoundX } from "lucide-react";
 import { getInbox, markTaskDone } from "@/lib/staff.functions";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
 import { EmptyState } from "@/components/maya/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { fmtSlot } from "@/lib/tz";
 import type { ReactNode } from "react";
 
