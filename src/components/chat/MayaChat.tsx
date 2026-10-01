@@ -332,8 +332,8 @@ export function MayaChat({
   const wrap = useRef<HTMLDivElement>(null);
 
   const sendVoice = useCallback(
-    (text: string) => {
-      sendMessage({ text }, { body: { channel: "voice" } });
+    (text: string, interruption?: { sentence: string; unsaid: string[] }) => {
+      sendMessage({ text }, { body: { channel: "voice", ...(interruption ? { interruption } : {}) } });
       setInput("");
     },
     [sendMessage],
