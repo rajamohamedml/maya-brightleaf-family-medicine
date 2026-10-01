@@ -28,7 +28,13 @@ function getRecCtor(): (new () => Rec) | undefined {
 }
 
 function replyText(m: UIMessage): string {
-  if (m.parts.some((p) => p.type === "data-emergency" || (p.type === "tool-check_emergency" && (p as any).output?.emergency)))
+  if (
+    m.parts.some(
+      (p) =>
+        p.type === "data-emergency" ||
+        (p.type === "tool-check_emergency" && (p as any).output?.emergency),
+    )
+  )
     return EMERGENCY_MESSAGE;
   return m.parts.map((p) => (p.type === "text" ? p.text : "")).join(" ");
 }
@@ -176,11 +182,18 @@ export function VoicePanel({
     return (
       <span role="status" className="flex min-w-0 items-center gap-2 text-sm text-warning">
         <MicOff className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span className="hidden sm:inline">{denied ? "Microphone blocked. " : ""}Voice works best in Chrome, Edge or Safari.</span>
+        <span className="hidden sm:inline">
+          {denied ? "Microphone blocked. " : ""}Voice works best in Chrome, Edge or Safari.
+        </span>
       </span>
     );
 
-  const label = { idle: "Tap the mic to talk", listening: "Listening…", thinking: "Maya is thinking…", speaking: "Maya is speaking — tap to interrupt" }[state];
+  const label = {
+    idle: "Tap the mic to talk",
+    listening: "Listening…",
+    thinking: "Maya is thinking…",
+    speaking: "Maya is speaking — tap to interrupt",
+  }[state];
 
   return (
     <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
@@ -189,12 +202,24 @@ export function VoicePanel({
       </span>
       {state !== "idle" && (
         <label className="hidden min-h-11 cursor-pointer items-center gap-1.5 px-2 text-xs sm:flex">
-          <input type="checkbox" checked={handsFree} onChange={(e) => setHandsFree(e.target.checked)} className="h-4 w-4 accent-primary" />
+          <input
+            type="checkbox"
+            checked={handsFree}
+            onChange={(e) => setHandsFree(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
           Hands-free
         </label>
       )}
       {state !== "idle" && (
-        <Button type="button" size="icon" variant="ghost" onClick={end} aria-label="End voice conversation" title="End voice conversation">
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={end}
+          aria-label="End voice conversation"
+          title="End voice conversation"
+        >
           <PhoneOff className="h-4 w-4" aria-hidden="true" />
         </Button>
       )}
@@ -202,23 +227,42 @@ export function VoicePanel({
         type="button"
         onClick={onMic}
         disabled={state === "thinking"}
-        aria-label={state === "listening" ? "Stop listening" : state === "speaking" ? "Interrupt Maya and talk" : "Start talking"}
+        aria-label={
+          state === "listening"
+            ? "Stop listening"
+            : state === "speaking"
+              ? "Interrupt Maya and talk"
+              : "Start talking"
+        }
         title={label}
         size="icon"
         variant="ghost"
         className={`relative shrink-0 rounded-full ${state === "listening" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-primary"}`}
       >
-        {state === "listening" && <span className="absolute inset-0 animate-ping rounded-full ring-4 ring-primary motion-reduce:animate-none" aria-hidden="true" />}
+        {state === "listening" && (
+          <span
+            className="absolute inset-0 animate-ping rounded-full ring-4 ring-primary motion-reduce:animate-none"
+            aria-hidden="true"
+          />
+        )}
         {state === "thinking" ? (
           <span className="flex gap-1" aria-hidden="true">
             {[0, 1, 2].map((d) => (
-              <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-current motion-reduce:animate-none" style={{ animationDelay: `${d * 150}ms` }} />
+              <span
+                key={d}
+                className="h-2 w-2 animate-bounce rounded-full bg-current motion-reduce:animate-none"
+                style={{ animationDelay: `${d * 150}ms` }}
+              />
             ))}
           </span>
         ) : state === "speaking" ? (
           <span className="flex h-7 items-end gap-1" aria-hidden="true">
             {[0, 1, 2, 3].map((d) => (
-              <span key={d} className="w-1.5 animate-pulse rounded-full bg-current motion-reduce:animate-none" style={{ height: `${[60, 100, 75, 45][d]}%`, animationDelay: `${d * 120}ms` }} />
+              <span
+                key={d}
+                className="w-1.5 animate-pulse rounded-full bg-current motion-reduce:animate-none"
+                style={{ height: `${[60, 100, 75, 45][d]}%`, animationDelay: `${d * 120}ms` }}
+              />
             ))}
           </span>
         ) : (
@@ -226,12 +270,24 @@ export function VoicePanel({
         )}
       </Button>
       {showNotice && (
-        <div role="dialog" aria-modal="true" aria-labelledby="voice-notice-title" className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="voice-notice-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm"
+        >
           <div className="w-full max-w-md rounded-xl border border-primary/40 bg-popover p-5 shadow-xl">
-            <p id="voice-notice-title" className="font-semibold">Use voice with Maya</p>
-            <p className="mt-2 text-sm text-muted-foreground">Maya will use your microphone. Audio stays in your browser and isn't stored. Demo only - don't share real health information.</p>
+            <p id="voice-notice-title" className="font-semibold">
+              Use voice with Maya
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Maya will use your microphone. Audio stays in your browser and isn't stored. Demo only
+              - don't share real health information.
+            </p>
             <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setShowNotice(false)}>Not now</Button>
+              <Button type="button" variant="ghost" onClick={() => setShowNotice(false)}>
+                Not now
+              </Button>
               <Button
                 type="button"
                 variant="cta"

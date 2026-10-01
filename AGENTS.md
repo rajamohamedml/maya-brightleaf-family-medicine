@@ -1,4 +1,5 @@
 <!-- LOVABLE:BEGIN -->
+
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
 > published git history — force pushing, or rebasing/amending/squashing commits
@@ -7,9 +8,11 @@
 >
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
+
 <!-- LOVABLE:END -->
 
 # Architecture rules
+
 - Demo reset: SQL `public.seed_demo()` (service role only), called only by staff-checked `resetDemo` — one idempotent reset point.
 - Public clinic facts: `src/lib/clinic-info.ts` — anon has no table access.
 - Shared UI in `src/components/maya/`; token dark theme in `src/styles.css` (cta coral, primary teal) — one accessible system.

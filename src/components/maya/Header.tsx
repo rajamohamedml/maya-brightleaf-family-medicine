@@ -13,11 +13,21 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
       <nav aria-label="Switch view" className="flex items-center">
-        <Link to="/" className={item(!inClinic)} aria-current={!inClinic ? "page" : undefined} aria-label="Patient site">
+        <Link
+          to="/"
+          className={item(!inClinic)}
+          aria-current={!inClinic ? "page" : undefined}
+          aria-label="Patient site"
+        >
           <Users className="h-4 w-4" aria-hidden="true" />
           <span className="hidden md:inline">Patient site</span>
         </Link>
-        <Link to="/clinic" className={item(inClinic)} aria-current={inClinic ? "page" : undefined} aria-label="Clinic dashboard">
+        <Link
+          to="/clinic"
+          className={item(inClinic)}
+          aria-current={inClinic ? "page" : undefined}
+          aria-label="Clinic dashboard"
+        >
           <Stethoscope className="h-4 w-4" aria-hidden="true" />
           <span className="hidden md:inline">Clinic dashboard</span>
         </Link>
@@ -35,7 +45,10 @@ export function Header({ onSignOut }: { onSignOut?: () => void }) {
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex min-h-16 max-w-[1100px] items-center justify-between gap-2 px-4">
         <div className="flex min-w-0 items-center gap-3">
-          <Link to="/" className={`flex min-h-11 items-center gap-2 rounded-lg font-semibold text-foreground ${focus}`}>
+          <Link
+            to="/"
+            className={`flex min-h-11 items-center gap-2 rounded-lg font-semibold text-foreground ${focus}`}
+          >
             <LeafMark />
             <span>Brightleaf Family Medicine</span>
           </Link>
