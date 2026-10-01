@@ -34,7 +34,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/booking/Field";
-import { addVisitToCalendar } from "@/components/booking/VisitCard";
+import { AddToCalendar } from "@/components/booking/VisitCard";
 import { createTask } from "@/lib/booking.functions";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
 import { fmtLongDay, fmtTime } from "@/lib/tz";
@@ -180,13 +180,9 @@ function BookedCard({ b }: { b: Booked }) {
         >
           Complete intake
         </PageLink>
-        <button
-          type="button"
-          onClick={() => addVisitToCalendar(b.visit)}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent"
-        >
+        <AddToCalendar visit={b.visit} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent">
           <CalendarPlus className="h-4 w-4" aria-hidden="true" /> Add to calendar
-        </button>
+        </AddToCalendar>
       </div>
       <p className="mt-3 text-sm italic text-primary">
         At Brightleaf Family Medicine, your well-being is our sole purpose
@@ -252,11 +248,9 @@ function ChangedCard({ o }: { o: any }) {
             className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent">
             Manage visit
           </PageLink>
-          <button type="button"
-            onClick={() => addVisitToCalendar({ name: o.visit_name, start_at: o.new_start_at, end_at: o.new_end_at, mode: o.mode })}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent">
+          <AddToCalendar visit={{ name: o.visit_name, start_at: o.new_start_at, end_at: o.new_end_at, mode: o.mode }} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent">
             <CalendarPlus className="h-4 w-4" aria-hidden="true" /> Add to calendar
-          </button>
+          </AddToCalendar>
         </div>
       </div>
     );

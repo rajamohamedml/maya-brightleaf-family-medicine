@@ -152,6 +152,33 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          name: string | null
+          rating: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          message: string
+          name?: string | null
+          rating?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          name?: string | null
+          rating?: number | null
+        }
+        Relationships: []
+      }
       intake_forms: {
         Row: {
           appointment_id: string

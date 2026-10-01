@@ -7,7 +7,7 @@ import { CalendarPlus, CalendarX2, CheckCircle2, ClipboardCheck, ClipboardList, 
 import { PageShell } from "@/components/maya/PageShell";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
 import { EmptyState } from "@/components/maya/EmptyState";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { VisitCard, addVisitToCalendar } from "@/components/booking/VisitCard";
+import { VisitCard, AddToCalendar } from "@/components/booking/VisitCard";
 import { SlotPicker, WindowToggle, type PickedSlot, type SlotWindow } from "@/components/booking/SlotPicker";
 import { manageAppointment } from "@/lib/booking.functions";
 
@@ -102,7 +102,7 @@ function VisitPage() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <Button variant="outline" onClick={() => addVisitToCalendar(visit)}><CalendarPlus /> Add to calendar</Button>
+              <AddToCalendar visit={visit} className={buttonVariants({ variant: "outline" })}><CalendarPlus /> Add to calendar</AddToCalendar>
             </div>
           </div>
         )}

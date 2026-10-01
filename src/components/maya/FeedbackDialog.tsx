@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { z } from "zod";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { feedbackSchema, listFeedback, submitFeedback } from "@/lib/feedback.functions";
 import { Bug, CheckCircle2, Lightbulb, MessageSquareHeart, Star } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,18 +13,6 @@ const kinds = [
   { id: "general", label: "General", icon: Star },
 ] as const;
 type Kind = (typeof kinds)[number]["id"];
-type Note = { kind: Kind; name: string | null; rating: number | null; text: string; at: string };
-
-const feedbackSchema = z.object({
-  kind: z.enum(["bug", "idea", "general"]),
-  name: z
-    .string()
-    .trim()
-    .max(60, "Please keep your name under 60 characters.")
-    .transform((v) => (v ? v : null)),
-  rating: z.number().int().min(1).max(5).nullable(),
-  text: z.string().trim().min(1, "Please write your feedback.").max(1000, "Please keep it under 1,000 characters."),
-});
 
 const focus =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -34,18 +24,31 @@ export function FeedbackDialog({ triggerClassName }: { triggerClassName: string 
   const [rating, setRating] = useState<number | null>(null);
   const [text, setText] = useState("");
   const [error, setError] = useState("");
-  const [notes, setNotes] = useState<Note[]>([]);
   const [sent, setSent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const qc = useQueryClient();
+  const send = useServerFn(submitFeedback);
+  const fetchNotes = useServerFn(listFeedback);
+  const notesQ = useQuery({ queryKey: ["feedback"], queryFn: () => fetchNotes(), enabled: tab === "see" });
+  const notes = notesQ.data ?? [];
 
   const rated = notes.filter((n) => n.rating != null);
   const avg = rated.length ? rated.reduce((s, n) => s + (n.rating ?? 0), 0) / rated.length : 0;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const r = feedbackSchema.safeParse({ kind, name, rating, text });
     if (!r.success) return setError(r.error.issues[0]?.message ?? "Please check the form.");
     setError("");
-    setNotes((n) => [{ ...r.data, at: new Date().toLocaleString() }, ...n]);
+    setSaving(true);
+    try {
+      await send({ data: { kind, name, rating, text } });
+    } catch {
+      setSaving(false);
+      return setError("We couldn't send your feedback. Please try again.");
+    }
+    setSaving(false);
+    qc.invalidateQueries({ queryKey: ["feedback"] });
     setText("");
     setName("");
     setRating(null);
@@ -148,12 +151,19 @@ export function FeedbackDialog({ triggerClassName }: { triggerClassName: string 
                     Cancel
                   </Button>
                 </DialogClose>
-                <Button type="submit" disabled={!text.trim()} className="feedback-submit min-h-11 flex-1 font-semibold">
+                <Button type="submit" disabled={!text.trim() || saving} className="feedback-submit min-h-11 flex-1 font-semibold">
                   Send Feedback
                 </Button>
               </div>
             </form>
           )
+        ) : notesQ.isLoading ? (
+          <p className="py-6 text-center text-muted-foreground" role="status">Loading feedback…</p>
+        ) : notesQ.isError ? (
+          <div className="py-6 text-center">
+            <p className="text-muted-foreground">We couldn't load feedback.</p>
+            <Button variant="outline" className="mt-2 min-h-11" onClick={() => notesQ.refetch()}>Try again</Button>
+          </div>
         ) : notes.length === 0 ? (
           <p className="py-6 text-center text-muted-foreground">No feedback yet.</p>
         ) : (
@@ -169,18 +179,18 @@ export function FeedbackDialog({ triggerClassName }: { triggerClassName: string 
               )}
             </p>
             <ul className="max-h-72 space-y-2 overflow-y-auto">
-              {notes.map((n, i) => (
-                <li key={i} className="rounded-lg border border-border p-3">
+              {notes.map((n) => (
+                <li key={n.id} className="rounded-lg border border-border p-3">
                   <p className="text-sm font-semibold text-primary">
                     <span className="capitalize">{n.kind}</span> · {n.name ?? "Anonymous"}{" "}
-                    <span className="font-normal text-muted-foreground">· {n.at}</span>
+                    <span className="font-normal text-muted-foreground">· {new Date(n.created_at).toLocaleString()}</span>
                   </p>
                   {n.rating != null && (
                     <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                       <StarsDisplay value={n.rating} /> {ratingLabels[n.rating]}
                     </p>
                   )}
-                  <p className="mt-1">{n.text}</p>
+                  <p className="mt-1 [overflow-wrap:anywhere]">{n.message}</p>
                 </li>
               ))}
             </ul>
