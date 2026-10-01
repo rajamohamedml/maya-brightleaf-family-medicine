@@ -621,6 +621,18 @@ export function MayaChat({
       </Conversation>
 
       <div className="border-t border-border p-3">
+        {(messages.length > 0 || ended) && (
+          <div className="mb-1 flex justify-end">
+            <button
+              type="button"
+              onClick={restart}
+              disabled={busy || voiceSession}
+              className="min-h-11 px-2 text-xs text-muted-foreground underline-offset-4 hover:text-primary hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Clear conversation
+            </button>
+          </div>
+        )}
         <PromptInput onSubmit={(msg) => (busy ? stop() : send(msg.text))}>
           <PromptInputTextarea
             aria-label="Message Maya"
@@ -655,9 +667,6 @@ export function MayaChat({
               }}
               startSignal={voiceStartSignal}
               skipGreeting={resumeVoice}
-              showClear={messages.length > 0 || ended}
-              clearDisabled={busy || voiceSession}
-              onClear={restart}
               emergency={emergency}
               onIdlePrompt={addMaya}
               onIdleClose={closeChat}
