@@ -130,8 +130,8 @@ function CallbackForm({ onDone }: { onDone: () => void }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const er: Record<string, string> = {};
-    if (name.trim().length < 2) er.name = "Enter your name";
-    if (phone.replace(/\D/g, "").length < 10) er.phone = "Enter a 10-digit phone number";
+    if (name.trim().length < 2) er["name"] = "Enter your name";
+    if (phone.replace(/\D/g, "").length < 10) er["phone"] = "Enter a 10-digit phone number";
     setErrors(er);
     if (Object.keys(er).length) return;
     setBusy(true);
@@ -147,8 +147,8 @@ function CallbackForm({ onDone }: { onDone: () => void }) {
   };
   return (
     <form onSubmit={submit} className="surface-tile mt-3 grid gap-3 rounded-xl border border-border p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-      <Field label="Your name" value={name} onChange={setName} error={errors.name} autoComplete="name" />
-      <Field label="Phone" value={phone} onChange={setPhone} error={errors.phone} type="tel" autoComplete="tel" />
+      <Field id="cb-name" label="Your name" value={name} onChange={(e) => setName(e.target.value)} error={errors["name"]} autoComplete="name" />
+      <Field id="cb-phone" label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} error={errors["phone"]} type="tel" autoComplete="tel" />
       <Button type="submit" disabled={busy} className="min-h-11 bg-cta text-cta-foreground hover:bg-cta/90">
         {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Request callback
       </Button>
