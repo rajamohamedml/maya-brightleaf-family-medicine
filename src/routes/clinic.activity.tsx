@@ -25,6 +25,7 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { getActivity, resetDemo, setDemoClock } from "@/lib/staff.functions";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
 import { EmptyState } from "@/components/maya/EmptyState";
@@ -207,7 +208,7 @@ function ActivityPage() {
                   <li key={r.id} className="surface-tile flex gap-3 rounded-xl border border-border p-3">
                     <info.icon className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
                     <div className="min-w-0">
-                      <p>{r.details?.text ?? info.label}</p>
+                      <p className="[overflow-wrap:anywhere] break-words">{linkify(r.details?.text ?? info.label)}</p>
                       <p className="text-sm text-muted-foreground">
                         {info.label} · {fmtSlot(r.run_at)}{r.minutes_saved ? ` · saved ${r.minutes_saved} min` : ""}
                       </p>
@@ -293,12 +294,13 @@ function Stat({ icon: Icon, value, label, sub, estimate }: { icon: LucideIcon; v
   );
 }
 
-const MAX_URL_DISPLAY = 32;
-
-// Shorten long links for display only — the real token stays in the data.
-function trimUrls(text: string): string {
-  return text.replace(/https?:\/\/\S+/g, (url) =>
-    url.length <= MAX_URL_DISPLAY ? url : `${url.slice(0, MAX_URL_DISPLAY)}…`
+function linkify(text: string): ReactNode[] {
+  return text.split(/(https?:\/\/[^\s]+)/g).map((part, index) =>
+    /^https?:\/\//.test(part) ? (
+      <a key={`${part}-${index}`} href={part} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">
+        {part}
+      </a>
+    ) : part,
   );
 }
 
@@ -307,14 +309,14 @@ function Preview({ m }: { m: { channel: string; to_address: string; subject: str
     return (
       <div className="mx-auto mt-2 max-w-xs min-w-0 rounded-[2rem] border border-border bg-background p-4">
         <p className="text-center text-sm text-muted-foreground">Brightleaf · to {m.to_address}</p>
-        <p className="mt-3 [overflow-wrap:anywhere] whitespace-pre-line rounded-2xl rounded-bl-sm bg-secondary p-3 text-secondary-foreground">{trimUrls(m.body)}</p>
+        <p className="mt-3 [overflow-wrap:anywhere] break-words whitespace-pre-line rounded-2xl rounded-bl-sm bg-secondary p-3 leading-relaxed text-secondary-foreground">{linkify(m.body)}</p>
       </div>
     );
   return (
     <div className="mt-2 min-w-0 rounded-xl border border-border bg-background p-4">
       <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">To: {m.to_address}</p>
       <p className="mt-1 font-semibold">{m.subject ?? "(no subject)"}</p>
-      <p className="mt-2 [overflow-wrap:anywhere] whitespace-pre-line">{trimUrls(m.body)}</p>
+      <p className="mt-2 [overflow-wrap:anywhere] break-words whitespace-pre-line leading-relaxed">{linkify(m.body)}</p>
     </div>
   );
 }

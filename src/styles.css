@@ -281,6 +281,15 @@
   82% { transform: scale(1.16); opacity: 0.32; }
 }
 
+@keyframes voice-status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@utility voice-status-dot {
+  animation: voice-status-blink 1.2s ease-in-out infinite;
+}
+
 @utility chat-active-frame {
   --chat-angle: 0deg;
   position: relative;
@@ -370,8 +379,13 @@
   }
 
   .chat-active-frame[data-chat-state="speaking"]::after,
-  .maya-launcher::before {
+  .maya-launcher::before,
+  .voice-status-dot {
     animation: none;
-    opacity: 0;
   }
+
+  .chat-active-frame[data-chat-state="speaking"]::after,
+  .maya-launcher::before { opacity: 0; }
+
+  .voice-status-dot { opacity: 1; }
 }

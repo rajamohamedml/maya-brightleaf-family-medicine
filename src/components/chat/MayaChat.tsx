@@ -18,6 +18,7 @@ import {
   Send,
   Square,
   CalendarClock,
+  Mic,
   XCircle,
 } from "lucide-react";
 import {
@@ -524,8 +525,14 @@ export function MayaChat({
           </p>
           <p className="truncate text-xs text-primary italic">Care that starts the moment you reach out</p>
         </div>
-        {voiceStatus && <span aria-live="polite" className="ml-auto text-sm font-medium text-primary">{voiceStatus}</span>}
       </div>
+      {voiceStatus && (
+        <div aria-live="polite" className="flex min-h-11 items-center justify-center gap-2 border-b border-border text-[18px] font-semibold text-primary">
+          <Mic className="h-5 w-5" aria-hidden="true" />
+          {voiceState === "listening" && <span className="voice-status-dot h-2.5 w-2.5 rounded-full bg-primary" aria-hidden="true" />}
+          <span>{voiceStatus}</span>
+        </div>
+      )}
 
       <Conversation className="flex-1">
         <ConversationContent aria-live="polite" className="gap-5 text-base">
@@ -580,7 +587,7 @@ export function MayaChat({
             <div key={m.id} className={m.role === "assistant" ? "flex gap-3" : ""}>
               {m.role === "assistant" && <MayaAvatar />}
               <Message from={m.role}>
-                <MessageContent className="text-[15px] group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground">
+                <MessageContent className="[overflow-wrap:anywhere] break-words text-[15px] group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2">
                   <Parts m={m} onPick={(s) => send(`Book the ${s.label} slot`)} onSend={send} />
                 </MessageContent>
               </Message>
