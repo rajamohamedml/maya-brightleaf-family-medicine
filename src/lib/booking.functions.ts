@@ -486,3 +486,90 @@ export const upsertLead = createServerFn({ method: "POST" })
     if (error) throw error;
     return { id: ins.id };
   });
+
+/* ---------- waitlist refill (shared with the automation engine) ---------- */
+async function refillAfterChange(startAt: string, what: string) {
+  const now = await getNow();
+  const offered = await refillSlot(startAt, now, origin());
+  await logRun("waitlist_refill", 0, { action: offered ? "offered" : "freed", text: `${what}${offered ? ` — offered the time to ${offered} from the waitlist.` : ". No waitlist match."}` });
+}
+
+/* ---------- waitlist offer page ---------- */
+async function loadOffer(id: string) {
+  const { data } = await db()
+    .from("waitlist")
+    .select("id,status,offered_start_at,offer_expires_at,offered_visit_code,patients(first_name,last_name,dob,phone,email,insurer)")
+    .eq("id", id)
+    .maybeSingle();
+  return data;
+}
+
+export const getOffer = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const w = await loadOffer(data.id);
+    if (!w || !w.offered_start_at || !w.offered_visit_code) return err("not_found", "We couldn't find this offer.");
+    const now = await getNow();
+    const vt = await loadVisitType(w.offered_visit_code);
+    const live = w.status === "offered" && !!w.offer_expires_at && Date.parse(w.offer_expires_at) > now.getTime();
+    return {
+      ok: true as const,
+      offer: {
+        first_name: w.patients?.first_name ?? "",
+        visit_name: vt?.name ?? "Visit",
+        minutes: vt?.minutes ?? 0,
+        start_at: w.offered_start_at,
+        expires_at: w.offer_expires_at,
+        state: (w.status === "accepted" ? "accepted" : live ? "open" : "expired") as "accepted" | "open" | "expired",
+      },
+    };
+  });
+
+export const respondOffer = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), accept: z.boolean() }).parse(d))
+  .handler(async ({ data }) => {
+    const w = await loadOffer(data.id);
+    if (!w || !w.offered_start_at || !w.offered_visit_code || !w.patients) return err("not_found", "We couldn't find this offer.");
+    const now = await getNow();
+    if (w.status !== "offered" || !w.offer_expires_at || Date.parse(w.offer_expires_at) <= now.getTime())
+      return err("expired", "Sorry, this offer has ended. You're still welcome to book another time.");
+    const p = w.patients;
+    if (!data.accept) {
+      await db().from("waitlist").update({ status: "expired" }).eq("id", w.id);
+      await refillAfterChange(w.offered_start_at, `${p.first_name} ${p.last_name} said no thanks to ${fmtSlot(w.offered_start_at)}`);
+      return { ok: true as const, declined: true, token: null };
+    }
+    const vt = await loadVisitType(w.offered_visit_code);
+    if (!vt) return err("unknown_visit_type", "That visit type isn't available.");
+    const reason = vt.code === "medicare_awv" ? "physical" : (vt.code as "new_patient" | "physical" | "follow_up" | "sick" | "telehealth");
+    const res = await bookCore({
+      patient: { dob: p.dob, phone: p.phone, first_name: p.first_name, last_name: p.last_name, email: p.email, insurer: p.insurer },
+      visit_type_code: vt.code,
+      start_at: w.offered_start_at,
+      mode: vt.modes.includes("in_person") ? "in_person" : "telehealth",
+      reason_category: reason,
+      source: "waitlist",
+    });
+    if (!("ok" in res)) {
+      await db().from("waitlist").update({ status: "expired" }).eq("id", w.id);
+      return err("slot_taken", "Sorry, that time is no longer free. We'll keep looking.");
+    }
+    await db().from("waitlist").update({ status: "accepted" }).eq("id", w.id);
+    return { ok: true as const, declined: false, token: res.token };
+  });
+
+/* ---------- public impact counter (aggregate only, no personal data) ---------- */
+export const getPublicImpact = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const now = await getNow();
+    const { data } = await db()
+      .from("automation_runs")
+      .select("minutes_saved")
+      .gt("run_at", new Date(now.getTime() - 7 * 86400_000).toISOString())
+      .lte("run_at", now.toISOString());
+    const minutes = (data ?? []).reduce((t, r) => t + r.minutes_saved, 0);
+    return { hours: Math.round((minutes / 60) * 10) / 10 };
+  } catch {
+    return { hours: 0 };
+  }
+});
