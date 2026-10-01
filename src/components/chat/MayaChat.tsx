@@ -292,9 +292,9 @@ export function MayaChat({
         <MayaAvatar />
         <div>
           <p className="text-base font-medium">
-            Meet Maya - Your Anytime Front Desk Assistant
+            Meet Maya — your anytime front desk
           </p>
-          <p className="text-xs text-primary">Your well-being is our sole purpose</p>
+          <p className="text-xs text-primary italic">Care that starts the moment you reach out</p>
         </div>
         <span className="ml-auto inline-flex items-center gap-2 text-sm text-success">
           <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
