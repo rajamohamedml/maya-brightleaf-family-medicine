@@ -1,0 +1,1 @@
+revoke execute on function public.seed_demo() from authenticated;
