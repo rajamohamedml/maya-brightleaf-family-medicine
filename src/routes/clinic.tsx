@@ -78,7 +78,7 @@ function ClinicLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <Header onSignOut={signOut} />
+      <Header onSignOut={signOut} email={ctx.email} />
       <nav aria-label="Staff" className="border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex w-full items-center gap-2 overflow-x-auto px-4 py-2 lg:px-6">
           <ul className="flex min-w-max items-center gap-1">
@@ -97,9 +97,6 @@ function ClinicLayout() {
               </li>
             ))}
           </ul>
-          <div className="ml-auto flex min-w-max items-center gap-2 border-l border-border pl-3">
-            <span className="hidden max-w-52 truncate text-sm text-muted-foreground lg:inline">{ctx.email}</span>
-          </div>
         </div>
       </nav>
       <div className="flex w-full flex-1 px-4 py-5 lg:px-6">
