@@ -55,12 +55,7 @@ export function Header() {
               View patient site <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           ) : (
-            <>
-              <Link to="/clinic" className={`${link} hidden sm:flex`}>Clinic login</Link>
-              <Link to="/book" className={`flex min-h-11 items-center rounded-lg bg-cta px-3 text-sm font-semibold text-cta-foreground hover:brightness-105 ${focus}`}>
-                Book a visit
-              </Link>
-            </>
+            <Link to="/clinic" className={`${link} hidden sm:flex`}>Clinic login</Link>
           )}
         </div>
       </div>
