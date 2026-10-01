@@ -83,7 +83,7 @@ function Landing() {
           <p className="text-sm font-semibold text-primary">
             {CLINIC.doctor} · Las Colinas, Irving
           </p>
-          <h1 className="mt-2 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
+          <h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
             Get in with Dr. Rahman — no hold music.
           </h1>
           <p className="mt-3 text-lg text-muted-foreground">

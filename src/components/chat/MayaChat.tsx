@@ -34,7 +34,7 @@ import { addVisitToCalendar } from "@/components/booking/VisitCard";
 import { createTask } from "@/lib/booking.functions";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
 import { fmtLongDay, fmtTime } from "@/lib/tz";
-import { VoicePanel } from "./VoicePanel";
+import { VoicePanel, VOICE_GREETING } from "./VoicePanel";
 
 const STARTERS = [
   "I'm new and need a physical",
@@ -113,6 +113,9 @@ function BookedCard({ b }: { b: Booked }) {
           <CalendarPlus className="h-4 w-4" aria-hidden="true" /> Add to calendar
         </button>
       </div>
+      <p className="mt-3 text-sm italic text-primary">
+        At Brightleaf Family Medicine, your well-being is our sole purpose
+      </p>
     </div>
   );
 }
@@ -249,13 +252,10 @@ export function MayaChat({
   });
   const [input, setInput] = useState("");
   const [callback, setCallback] = useState(false);
+  const [voiceSession, setVoiceSession] = useState(false);
+  const [voiceStartSignal, setVoiceStartSignal] = useState(0);
   const busy = status === "submitted" || status === "streaming";
   const wrap = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (voice)
-      wrap.current?.querySelector<HTMLButtonElement>('button[aria-label="Start talking"]')?.click();
-  }, [voice]);
 
   const sendVoice = useCallback(
     (text: string) => {
@@ -293,6 +293,7 @@ export function MayaChat({
         <div>
           <p className="font-semibold">Maya</p>
           <p className="text-sm text-muted-foreground">Front desk · Brightleaf Family Medicine</p>
+          <p className="text-xs text-primary">Your well-being is our sole purpose</p>
         </div>
         <span className="ml-auto inline-flex items-center gap-2 text-sm text-success">
           <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
@@ -307,11 +308,24 @@ export function MayaChat({
               <div className="flex gap-3">
                 <MayaAvatar />
                 <p className="pt-1.5 text-[15px]">
-                  Hi, I'm Maya. I can book a visit, answer questions about the clinic, or pass a
-                  message to the team. How can I help?
+                  {voiceSession ? (
+                    VOICE_GREETING
+                  ) : (
+                    <>Hi, I'm Maya. I can book a visit, answer questions about the clinic, or pass a message to the team. How can I help?</>
+                  )}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2 pl-12">
+              {voice && !voiceSession ? (
+                <div className="pl-12">
+                  <Button
+                    type="button"
+                    className="min-h-12 bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                    onClick={() => setVoiceStartSignal((value) => value + 1)}
+                  >
+                    Start talking to Maya
+                  </Button>
+                </div>
+              ) : <div className="flex flex-wrap gap-2 pl-12">
                 {STARTERS.map((s) => (
                   <button
                     key={s}
@@ -322,7 +336,7 @@ export function MayaChat({
                     {s}
                   </button>
                 ))}
-              </div>
+              </div>}
             </div>
           )}
           {messages.map((m) => (
@@ -383,7 +397,12 @@ export function MayaChat({
               busy={busy}
               onTranscript={setInput}
               onSend={sendVoice}
-              onEnd={focus}
+              onEnd={() => {
+                setVoiceSession(false);
+                focus();
+              }}
+              onSessionStart={() => setVoiceSession(true)}
+              startSignal={voiceStartSignal}
             />
             <PromptInputSubmit
               status={status}
