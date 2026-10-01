@@ -40,7 +40,7 @@ function useSignOut() {
   };
 }
 
-function CountBadge({ n }: { n?: number }) {
+function CountBadge({ n }: { n?: number | undefined }) {
   if (!n) return null;
   return (
     <span className="ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-cta px-1.5 text-sm font-semibold text-cta-foreground" aria-label={`${n} waiting`}>

@@ -7,7 +7,7 @@ import { addDays, isoDow, localDateStr, localMinutes, zonedToUtc } from "./tz";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const uuid = z.string().uuid();
-const BLOCKING = ["confirmed", "reconfirmed", "arrived"];
+const BLOCKING: ("confirmed" | "reconfirmed" | "arrived")[] = ["confirmed", "reconfirmed", "arrived"];
 const DOW_KEY = ["", "mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 type Ctx = { supabase: any; userId: string };
@@ -19,7 +19,7 @@ async function assertStaff(ctx: Ctx) {
 
 const toMin = (hm: string) => {
   const [h, m] = hm.split(":").map(Number);
-  return h * 60 + m;
+  return (h ?? 0) * 60 + (m ?? 0);
 };
 
 async function clinicNow(sb: any) {
@@ -30,7 +30,7 @@ async function clinicNow(sb: any) {
 type Range = { start: number; end: number };
 /** Free 15-minute steps on a day (after `fromMin`), ignoring lunch/blocked time and booked visits (+5 min buffer). */
 function freeTime(date: string, hours: Record<string, [string, string]>, appts: { start_at: string; end_at: string }[], blocks: { kind: string; start_at: string; end_at: string }[], fromMin = 0) {
-  const h = hours[DOW_KEY[isoDow(date)]];
+  const h = hours[DOW_KEY[isoDow(date)] ?? ""];
   if (!h) return { steps: 0, gaps: [] as Range[] };
   const [open, close] = [toMin(h[0]), toMin(h[1])];
   const busy: Range[] = [
@@ -157,7 +157,7 @@ export const getWeek = createServerFn({ method: "POST" })
         .select("id,start_at,end_at,mode,status,intake_status,visit_types(code,name),patients(first_name,last_name,phone,insurer,is_new)")
         .gte("start_at", from)
         .lt("start_at", to)
-        .in("status", [...BLOCKING, "completed", "no_show"])
+        .in("status", [...BLOCKING, "completed" as const, "no_show" as const])
         .order("start_at"),
       sb.from("schedule_blocks").select("id,kind,start_at,end_at,note").gte("start_at", from).lt("start_at", to),
     ]);
