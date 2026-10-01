@@ -184,7 +184,7 @@ function ActivityPage() {
       <section aria-labelledby="impact">
         <h1 id="impact" className="text-2xl font-semibold">Impact</h1>
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <Stat icon={Clock} value={`${hrs(d.impact.minutes_today)} h`} label="Hours saved today" sub={`${hrs(d.impact.minutes_week)} h last 7 days`} />
+          <Stat icon={Clock} value={`${hrs(d.impact.minutes_today)} h`} label="Hours saved today" sub={`${hrs(d.impact.minutes_week)} h last 7 days`} estimate />
           <Stat icon={CalendarCheck} value={d.impact.booked_without_staff} label="Visits booked without staff" />
           <Stat icon={UserCheck} value={d.impact.no_shows_prevented} label="No-shows prevented" sub={`${d.impact.released} released · ${d.impact.refilled} refilled`} />
           <Stat icon={Users} value={d.impact.refilled} label="Slots refilled from waitlist" />
@@ -279,11 +279,14 @@ function ActivityPage() {
   );
 }
 
-function Stat({ icon: Icon, value, label, sub }: { icon: LucideIcon; value: string | number; label: string; sub?: string }) {
+function Stat({ icon: Icon, value, label, sub, estimate }: { icon: LucideIcon; value: string | number; label: string; sub?: string; estimate?: boolean }) {
   return (
     <div className="surface-tile rounded-xl border border-border p-4">
       <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
-      <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-2 flex flex-wrap items-center gap-2 text-2xl font-semibold tabular-nums">
+        {value}
+        {estimate && <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-normal text-muted-foreground">fictional estimate</span>}
+      </p>
       <p className="text-sm">{label}</p>
       {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
     </div>

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Eye, Info } from "lucide-react";
 import { FeedbackDialog } from "./FeedbackDialog";
+import { VIDEO_URL } from "@/lib/site";
 
 const focus =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -15,10 +16,12 @@ export function Footer() {
           <div><p>Demo with fictional data - do not enter real health information.</p><p className="mt-1">Next on the roadmap: real phone line, EHR integration, SMS, insurance eligibility checks, HIPAA-ready hosting with BAAs.</p></div>
         </div>
         <nav aria-label="Footer" className="flex items-center gap-1">
-          <Link to="/watch" className={linkCls}>
-            <Eye className="h-4 w-4" aria-hidden="true" />
-            Watch
-          </Link>
+          {VIDEO_URL && (
+            <Link to="/watch" className={linkCls}>
+              <Eye className="h-4 w-4" aria-hidden="true" />
+              Watch
+            </Link>
+          )}
           <FeedbackDialog triggerClassName={linkCls} />
         </nav>
       </div>

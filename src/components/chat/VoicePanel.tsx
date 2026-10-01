@@ -575,8 +575,8 @@ export function VoicePanel({
       <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
         <span role="status" className="flex min-w-0 items-center gap-2 text-sm text-warning">
           <MicOff className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="hidden sm:inline">
-            {denied ? "Microphone blocked. " : ""}Voice works best in Chrome, Edge or Safari.
+          <span className="text-xs sm:text-sm">
+            {denied ? "Microphone blocked. " : ""}Voice works best in Chrome, Edge or Safari - you can chat with Maya here instead.
           </span>
         </span>
       </div>
