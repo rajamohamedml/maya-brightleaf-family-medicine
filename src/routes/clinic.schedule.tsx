@@ -130,7 +130,7 @@ function Schedule() {
                   .map((b) => {
                     const s = Math.max(localMinutes(new Date(b.start_at)), START);
                     const e = Math.min(localMinutes(new Date(b.end_at)), END);
-                    const st = BLOCK_STYLE[b.kind];
+                    const st = BLOCK_STYLE[b.kind] ?? { label: b.kind, cls: "bg-muted/60" };
                     return (
                       <div key={b.id} className={cn("absolute inset-x-0 px-1 text-sm", st.cls)} style={{ top: ((s - START) / 15) * ROW, height: ((e - s) / 15) * ROW }} title={b.note ?? st.label}>
                         <span className="font-semibold">{b.kind === "blocked" ? b.note || st.label : st.label}</span>
@@ -367,7 +367,7 @@ function AddVisitForm({ onDone }: { onDone: () => void }) {
             onChange={(e) => {
               const v = VISIT_TYPES.find((x) => x.code === e.target.value)!;
               setCode(v.code);
-              setMode(v.modes[0]);
+              setMode(v.modes[0] ?? "in_person");
               setSlot(null);
             }}
           >
