@@ -14,16 +14,578 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          created_at: string
+          end_at: string
+          id: string
+          intake_status: Database["public"]["Enums"]["intake_status"]
+          manage_token: string
+          mode: Database["public"]["Enums"]["visit_mode"]
+          patient_id: string
+          reason_category: Database["public"]["Enums"]["reason_category"]
+          reconfirmed_at: string | null
+          source: Database["public"]["Enums"]["appt_source"]
+          start_at: string
+          status: Database["public"]["Enums"]["appt_status"]
+          visit_type_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_at: string
+          id?: string
+          intake_status?: Database["public"]["Enums"]["intake_status"]
+          manage_token?: string
+          mode?: Database["public"]["Enums"]["visit_mode"]
+          patient_id: string
+          reason_category: Database["public"]["Enums"]["reason_category"]
+          reconfirmed_at?: string | null
+          source?: Database["public"]["Enums"]["appt_source"]
+          start_at: string
+          status?: Database["public"]["Enums"]["appt_status"]
+          visit_type_id: string
+        }
+        Update: {
+          created_at?: string
+          end_at?: string
+          id?: string
+          intake_status?: Database["public"]["Enums"]["intake_status"]
+          manage_token?: string
+          mode?: Database["public"]["Enums"]["visit_mode"]
+          patient_id?: string
+          reason_category?: Database["public"]["Enums"]["reason_category"]
+          reconfirmed_at?: string | null
+          source?: Database["public"]["Enums"]["appt_source"]
+          start_at?: string
+          status?: Database["public"]["Enums"]["appt_status"]
+          visit_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_visit_type_id_fkey"
+            columns: ["visit_type_id"]
+            isOneToOne: false
+            referencedRelation: "visit_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_runs: {
+        Row: {
+          actions_count: number
+          details: Json
+          id: string
+          minutes_saved: number
+          rule: string
+          run_at: string
+        }
+        Insert: {
+          actions_count?: number
+          details?: Json
+          id?: string
+          minutes_saved?: number
+          rule: string
+          run_at?: string
+        }
+        Update: {
+          actions_count?: number
+          details?: Json
+          id?: string
+          minutes_saved?: number
+          rule?: string
+          run_at?: string
+        }
+        Relationships: []
+      }
+      clinic_settings: {
+        Row: {
+          accepted_insurers: string[]
+          address: string
+          buffer_minutes: number
+          clinic_name: string
+          demo_now: string | null
+          doctor_name: string
+          hours: Json
+          id: number
+          phone: string
+          self_pay: Json
+          slot_step_minutes: number
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_insurers?: string[]
+          address?: string
+          buffer_minutes?: number
+          clinic_name?: string
+          demo_now?: string | null
+          doctor_name?: string
+          hours?: Json
+          id?: number
+          phone?: string
+          self_pay?: Json
+          slot_step_minutes?: number
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_insurers?: string[]
+          address?: string
+          buffer_minutes?: number
+          clinic_name?: string
+          demo_now?: string | null
+          doctor_name?: string
+          hours?: Json
+          id?: number
+          phone?: string
+          self_pay?: Json
+          slot_step_minutes?: number
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      intake_forms: {
+        Row: {
+          appointment_id: string
+          data: Json
+          id: string
+          patient_id: string
+          submitted_at: string
+        }
+        Insert: {
+          appointment_id: string
+          data?: Json
+          id?: string
+          patient_id: string
+          submitted_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          data?: Json
+          id?: string
+          patient_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_forms_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_forms_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          converted_appointment_id: string | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          last_activity_at: string
+          last_name: string | null
+          nudged_at: string | null
+          phone: string | null
+          reason_category: Database["public"]["Enums"]["reason_category"] | null
+          source: Database["public"]["Enums"]["appt_source"]
+          step_reached: string
+        }
+        Insert: {
+          converted_appointment_id?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_activity_at?: string
+          last_name?: string | null
+          nudged_at?: string | null
+          phone?: string | null
+          reason_category?:
+            | Database["public"]["Enums"]["reason_category"]
+            | null
+          source?: Database["public"]["Enums"]["appt_source"]
+          step_reached: string
+        }
+        Update: {
+          converted_appointment_id?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_activity_at?: string
+          last_name?: string | null
+          nudged_at?: string | null
+          phone?: string | null
+          reason_category?:
+            | Database["public"]["Enums"]["reason_category"]
+            | null
+          source?: Database["public"]["Enums"]["appt_source"]
+          step_reached?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_converted_appointment_id_fkey"
+            columns: ["converted_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          appointment_id: string | null
+          body: string
+          channel: Database["public"]["Enums"]["msg_channel"]
+          id: string
+          lead_id: string | null
+          patient_id: string | null
+          rule: string | null
+          sent_at: string
+          subject: string | null
+          template: string
+          to_address: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          body: string
+          channel: Database["public"]["Enums"]["msg_channel"]
+          id?: string
+          lead_id?: string | null
+          patient_id?: string | null
+          rule?: string | null
+          sent_at?: string
+          subject?: string | null
+          template: string
+          to_address: string
+        }
+        Update: {
+          appointment_id?: string | null
+          body?: string
+          channel?: Database["public"]["Enums"]["msg_channel"]
+          id?: string
+          lead_id?: string | null
+          patient_id?: string | null
+          rule?: string | null
+          sent_at?: string
+          subject?: string | null
+          template?: string
+          to_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          created_at: string
+          dob: string
+          email: string
+          first_name: string
+          id: string
+          insurer: string
+          is_new: boolean
+          last_name: string
+          no_show_count: number
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          dob: string
+          email: string
+          first_name: string
+          id?: string
+          insurer: string
+          is_new?: boolean
+          last_name: string
+          no_show_count?: number
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          dob?: string
+          email?: string
+          first_name?: string
+          id?: string
+          insurer?: string
+          is_new?: boolean
+          last_name?: string
+          no_show_count?: number
+          phone?: string
+        }
+        Relationships: []
+      }
+      recalls: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          last_contacted_at: string | null
+          patient_id: string
+          status: Database["public"]["Enums"]["recall_status"]
+          visit_type_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          id?: string
+          last_contacted_at?: string | null
+          patient_id: string
+          status?: Database["public"]["Enums"]["recall_status"]
+          visit_type_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          last_contacted_at?: string | null
+          patient_id?: string
+          status?: Database["public"]["Enums"]["recall_status"]
+          visit_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recalls_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recalls_visit_type_id_fkey"
+            columns: ["visit_type_id"]
+            isOneToOne: false
+            referencedRelation: "visit_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_blocks: {
+        Row: {
+          end_at: string
+          id: string
+          kind: Database["public"]["Enums"]["block_kind"]
+          note: string | null
+          start_at: string
+        }
+        Insert: {
+          end_at: string
+          id?: string
+          kind: Database["public"]["Enums"]["block_kind"]
+          note?: string | null
+          start_at: string
+        }
+        Update: {
+          end_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["block_kind"]
+          note?: string | null
+          start_at?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          done_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["task_kind"]
+          patient_id: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          summary: string
+        }
+        Insert: {
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["task_kind"]
+          patient_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          summary: string
+        }
+        Update: {
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["task_kind"]
+          patient_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visit_types: {
+        Row: {
+          code: string
+          established_only: boolean
+          id: string
+          insurer_only: string | null
+          latest_start: string | null
+          max_per_day: number | null
+          minutes: number
+          modes: Database["public"]["Enums"]["visit_mode"][]
+          name: string
+          new_only: boolean
+          sort: number
+        }
+        Insert: {
+          code: string
+          established_only?: boolean
+          id?: string
+          insurer_only?: string | null
+          latest_start?: string | null
+          max_per_day?: number | null
+          minutes: number
+          modes: Database["public"]["Enums"]["visit_mode"][]
+          name: string
+          new_only?: boolean
+          sort?: number
+        }
+        Update: {
+          code?: string
+          established_only?: boolean
+          id?: string
+          insurer_only?: string | null
+          latest_start?: string | null
+          max_per_day?: number | null
+          minutes?: number
+          modes?: Database["public"]["Enums"]["visit_mode"][]
+          name?: string
+          new_only?: boolean
+          sort?: number
+        }
+        Relationships: []
+      }
+      waitlist: {
+        Row: {
+          created_at: string
+          earliest_date: string
+          id: string
+          latest_date: string
+          offer_expires_at: string | null
+          offered_start_at: string | null
+          patient_id: string
+          status: Database["public"]["Enums"]["waitlist_status"]
+          visit_type_codes: string[]
+          window: Database["public"]["Enums"]["waitlist_window"]
+        }
+        Insert: {
+          created_at?: string
+          earliest_date: string
+          id?: string
+          latest_date: string
+          offer_expires_at?: string | null
+          offered_start_at?: string | null
+          patient_id: string
+          status?: Database["public"]["Enums"]["waitlist_status"]
+          visit_type_codes: string[]
+          window?: Database["public"]["Enums"]["waitlist_window"]
+        }
+        Update: {
+          created_at?: string
+          earliest_date?: string
+          id?: string
+          latest_date?: string
+          offer_expires_at?: string | null
+          offered_start_at?: string | null
+          patient_id?: string
+          status?: Database["public"]["Enums"]["waitlist_status"]
+          visit_type_codes?: string[]
+          window?: Database["public"]["Enums"]["waitlist_window"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      seed_demo: { Args: never; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      appt_source: "form" | "chat" | "voice" | "staff" | "waitlist"
+      appt_status:
+        | "confirmed"
+        | "reconfirmed"
+        | "arrived"
+        | "completed"
+        | "cancelled"
+        | "released"
+        | "no_show"
+      block_kind: "lunch" | "blocked" | "telehealth_only" | "sick_hold"
+      intake_status: "not_started" | "done"
+      msg_channel: "email" | "sms"
+      reason_category:
+        | "new_patient"
+        | "physical"
+        | "follow_up"
+        | "sick"
+        | "telehealth"
+        | "other"
+      recall_status: "due" | "contacted" | "booked" | "dismissed"
+      task_kind: "refill" | "records" | "billing" | "callback"
+      task_status: "open" | "done"
+      visit_mode: "in_person" | "telehealth"
+      waitlist_status: "waiting" | "offered" | "accepted" | "expired"
+      waitlist_window: "am" | "pm" | "any"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +712,34 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      appt_source: ["form", "chat", "voice", "staff", "waitlist"],
+      appt_status: [
+        "confirmed",
+        "reconfirmed",
+        "arrived",
+        "completed",
+        "cancelled",
+        "released",
+        "no_show",
+      ],
+      block_kind: ["lunch", "blocked", "telehealth_only", "sick_hold"],
+      intake_status: ["not_started", "done"],
+      msg_channel: ["email", "sms"],
+      reason_category: [
+        "new_patient",
+        "physical",
+        "follow_up",
+        "sick",
+        "telehealth",
+        "other",
+      ],
+      recall_status: ["due", "contacted", "booked", "dismissed"],
+      task_kind: ["refill", "records", "billing", "callback"],
+      task_status: ["open", "done"],
+      visit_mode: ["in_person", "telehealth"],
+      waitlist_status: ["waiting", "offered", "accepted", "expired"],
+      waitlist_window: ["am", "pm", "any"],
+    },
   },
 } as const
