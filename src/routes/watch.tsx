@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlayCircle } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Home, PlayCircle } from "lucide-react";
 
 export const Route = createFileRoute("/watch")({
   head: () => ({
