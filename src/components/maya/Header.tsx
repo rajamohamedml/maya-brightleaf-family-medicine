@@ -13,24 +13,17 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
       <nav aria-label="Switch view" className="flex items-center">
-        <Link
-          to="/"
-          className={item(!inClinic)}
-          aria-current={!inClinic ? "page" : undefined}
-          aria-label="Patient site"
-        >
-          <Users className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden md:inline">Patient site</span>
-        </Link>
-        <Link
-          to="/clinic"
-          className={item(inClinic)}
-          aria-current={inClinic ? "page" : undefined}
-          aria-label="Clinic dashboard"
-        >
-          <Stethoscope className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden md:inline">Clinic dashboard</span>
-        </Link>
+        {!inClinic ? (
+          <Link to="/" className={item(true)} aria-label="Patient site">
+            <Users className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden md:inline">Patient site</span>
+          </Link>
+        ) : (
+          <Link to="/clinic" className={item(true)} aria-label="Clinic dashboard">
+            <Stethoscope className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden md:inline">Clinic dashboard</span>
+          </Link>
+        )}
       </nav>
     </div>
   );
@@ -54,7 +47,7 @@ export function Header({ onSignOut }: { onSignOut?: () => void }) {
           </Link>
         </div>
         <div className="flex items-center gap-1">
-          <SideSwitch inClinic={inClinic} />
+          <SideSwitch inClinic={inClinic && !!onSignOut} />
           {inClinic && onSignOut && (
             <button type="button" onClick={onSignOut} className={`${link} hidden sm:flex`}>
               <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> Sign out
