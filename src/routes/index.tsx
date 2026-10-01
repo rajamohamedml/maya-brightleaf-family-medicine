@@ -78,7 +78,7 @@ function Landing() {
   const impact = Route.useLoaderData();
   return (
     <PageShell>
-      <section className="hero-glow -mx-4 grid gap-8 px-4 py-8 lg:grid-cols-[minmax(0,0.88fr)_minmax(420px,1.12fr)] lg:items-center lg:py-12">
+      <div className="hero-glow -mx-4 px-4 py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10 lg:px-4 lg:py-12">
         <div>
           <p className="text-sm font-semibold text-primary">
             {CLINIC.doctor} · Las Colinas, Irving
@@ -101,12 +101,15 @@ function Landing() {
             </Link>
           </div>
         </div>
-        <div className="min-w-0" aria-label="Chat with Maya">
-          <Suspense fallback={<LoadingSkeleton rows={6} />}>
+        <div
+          aria-label="Chat with Maya"
+          className="mt-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:sticky lg:top-20 lg:mt-0"
+        >
+          <Suspense fallback={<LoadingSkeleton rows={10} />}>
             <MayaChat embedded />
           </Suspense>
         </div>
-      </section>
+        <div className="mt-10 min-w-0 lg:col-start-1 lg:row-start-2 lg:mt-0">
 
       <section
         aria-labelledby="ba"
@@ -207,6 +210,8 @@ function Landing() {
           <p className="mt-1 text-muted-foreground">{CLINIC.phone}</p>
         </div>
       </section>
+        </div>
+      </div>
     </PageShell>
   );
 }
