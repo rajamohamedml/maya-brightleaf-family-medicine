@@ -84,6 +84,18 @@ function emergencyResponse() {
   return createUIMessageStreamResponse({ stream });
 }
 
+/** LLM classifier: does this one message describe a current emergency? */
+async function screenEmergencyText(provider: ReturnType<typeof createOpenAI>, text: string, reasoning: unknown) {
+  const r = streamText({
+    model: provider.responses(MODEL),
+    system:
+      "Answer only YES or NO. Does this message describe chest pain, trouble breathing, signs of a stroke, heavy bleeding, or thoughts of self-harm/suicide happening now?",
+    prompt: text,
+    providerOptions: { openai: reasoning },
+  });
+  return (await r.text).trim().toUpperCase().startsWith("YES");
+}
+
 const patientSchema = z.object({
   first_name: z.string().nullable(),
   last_name: z.string().nullable(),
