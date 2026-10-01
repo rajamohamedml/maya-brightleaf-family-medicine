@@ -42,7 +42,7 @@ export function Header() {
         <div className="flex min-w-0 items-center gap-3">
           <Link to="/" className={`flex min-h-11 items-center gap-2 rounded-lg font-semibold text-foreground ${focus}`}>
             <LeafMark />
-            <span className="hidden lg:inline">Brightleaf Family Medicine</span>
+            <span>Brightleaf Family Medicine</span>
           </Link>
           {inClinic && <span className="hidden text-sm font-semibold text-primary sm:inline">Clinic dashboard</span>}
         </div>
