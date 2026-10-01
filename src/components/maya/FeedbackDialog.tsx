@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } 
 import { Button } from "@/components/ui/button";
 
 const kinds = [
-  { id: "bug", label: "Bug", icon: Bug },
+  { id: "bug", label: "Complaints", icon: Bug },
   { id: "idea", label: "Idea", icon: Lightbulb },
   { id: "general", label: "General", icon: Star },
 ] as const;
