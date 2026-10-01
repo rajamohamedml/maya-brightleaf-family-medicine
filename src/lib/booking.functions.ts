@@ -43,6 +43,17 @@ function origin() {
   }
 }
 
+/** True when the request carries a valid session for a user with the staff role. */
+async function isStaffRequest() {
+  const auth = getRequest().headers.get("authorization") ?? "";
+  const t = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (t.split(".").length !== 3) return false;
+  const { data: u } = await db().auth.getUser(t);
+  if (!u.user) return false;
+  const { data: r } = await db().from("user_roles").select("id").eq("user_id", u.user.id).eq("role", "staff").maybeSingle();
+  return !!r;
+}
+
 async function logRun(rule: string, minutes: number, details: Record<string, unknown>) {
   await db().from("automation_runs").insert({ rule, actions_count: 1, minutes_saved: minutes, details: details as never });
 }
@@ -175,6 +186,7 @@ export const bookAppointment = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
+    if (data.source === "staff" && !(await isStaffRequest())) return err("forbidden", "Only signed-in staff can add visits.");
     const vt = await loadVisitType(data.visit_type_code);
     if (!vt) return err("unknown_visit_type", "That visit type isn't available.");
     const res = await findOrCreatePatient(data.patient);
