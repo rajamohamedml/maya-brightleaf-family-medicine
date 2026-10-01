@@ -43,7 +43,7 @@ export function Header({ onSignOut, email }: { onSignOut?: () => void; email?: s
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex min-h-16 max-w-[1100px] items-center justify-between gap-2 px-4">
+      <div className={`flex min-h-16 items-center justify-between gap-2 px-4 ${inClinic ? "max-w-none" : "mx-auto max-w-[1100px]"}`}>
         <div className="flex min-w-0 items-center gap-3">
           <Link
             to="/"
