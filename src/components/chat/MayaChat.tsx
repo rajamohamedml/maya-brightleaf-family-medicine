@@ -496,22 +496,10 @@ export function MayaChat({
           </p>
           <p className="text-xs text-primary italic">Care that starts the moment you reach out</p>
         </div>
-        <div className="ml-auto flex flex-col items-end">
-          <span className="inline-flex items-center gap-2 text-sm text-success">
-            <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
-            Online
-          </span>
-          {(messages.length > 0 || ended) && (
-            <button
-              type="button"
-              onClick={restart}
-              disabled={busy || voiceSession}
-              className="min-h-11 text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Clear conversation
-            </button>
-          )}
-        </div>
+        <span className="ml-auto inline-flex items-center gap-2 text-sm text-success">
+          <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
+          Online
+        </span>
       </div>
 
       <Conversation className="flex-1">
@@ -644,6 +632,9 @@ export function MayaChat({
               }}
               startSignal={voiceStartSignal}
               skipGreeting={resumeVoice}
+              showClear={messages.length > 0 || ended}
+              clearDisabled={busy || voiceSession}
+              onClear={restart}
               emergency={emergency}
               onIdlePrompt={addMaya}
               onIdleClose={closeChat}
