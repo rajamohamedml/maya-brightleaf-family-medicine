@@ -8,7 +8,9 @@ import { pickVoice, startResumeWatch, toSpeech, unlockSpeech, voicesReady, waitF
 
 export type VoiceState = "idle" | "listening" | "thinking" | "speaking";
 const CONSENT_KEY = "maya-voice-consent";
-const SILENCE_MS = 1500;
+const SILENCE_MS = 2500;
+const DIGIT_SILENCE_MS = 3500; // phone numbers / dates of birth
+const RESTART_MS = 250;
 export const VOICE_GREETING =
   "Welcome to Brightleaf Family Medicine. I'm Maya, your anytime front desk assistant. How can I help you today?";
 const BOOKING_CLOSING = "At Brightleaf Family Medicine, your well-being is our sole purpose";
@@ -55,10 +57,11 @@ function hasBooking(m: UIMessage): boolean {
 
 export const IDLE_PROMPTS = [
   "I haven't heard anything yet — take your time. I'm still here whenever you're ready.",
-  "I still haven't heard a response. Are you still there?",
+  "Are you still there?",
   "Since I haven't heard back, I'll close our conversation for now. Thank you for contacting Brightleaf Family Medicine — your well-being is our sole purpose. Take care, and reach out anytime.",
 ] as const;
-const VOICE_IDLE_MS = [5000, 8000, 8000];
+// Cumulative 8s / 16s / 24s of silence, counted from 1.5s after Maya finishes.
+const VOICE_IDLE_MS = [9500, 8000, 8000];
 
 export type Interruption = { sentence: string; unsaid: string[] };
 
@@ -148,8 +151,9 @@ export function VoicePanel({
     if (resetStep) idleStep.current = 0;
   }, []);
   /** Start the silence countdown (only while listening and nothing has been heard). */
+  const heardSinceReply = useRef(false);
   const armIdle = useCallback(() => {
-    if (idleTimer.current || emergencyRef.current) return;
+    if (idleTimer.current || emergencyRef.current || heardSinceReply.current) return;
     idleTimer.current = setTimeout(() => {
       idleTimer.current = null;
       fireIdleRef.current();
@@ -280,10 +284,14 @@ export function VoicePanel({
       let confidence = 1;
       const arm = () => {
         if (silence.current) clearTimeout(silence.current);
-        silence.current = setTimeout(() => rec.stop(), SILENCE_MS);
+        silence.current = setTimeout(() => rec.stop(), /\d/.test(heard) ? DIGIT_SILENCE_MS : SILENCE_MS);
       };
       rec.onresult = (e) => {
         resultCount.current = e.results.length;
+        if (!monitoring.current) {
+          heardSinceReply.current = true; // any result counts as speech
+          clearIdle(true);
+        }
         if (monitoring.current) {
           // Barge-in check: real voice energy AND words that aren't Maya's own sentence.
           let latest = "";
@@ -306,12 +314,24 @@ export function VoicePanel({
           } else interim += r[0].transcript;
         }
         heard = (finalText + interim).trim();
-        if (heard) clearIdle(true); // the patient is talking: cancel the countdown
+        if (heard) {
+          heardSinceReply.current = true;
+          clearIdle(true); // the patient is talking: cancel the countdown
+        }
         onTranscript(heard);
         if (heard) arm(); // only stop after silence once something was said
       };
+      (rec as unknown as { onspeechstart: (() => void) | null }).onspeechstart = () => {
+        if (monitoring.current) return;
+        heardSinceReply.current = true;
+        clearIdle(true);
+      };
       rec.onerror = (e) => {
-        if (e.error === "not-allowed" || e.error === "service-not-allowed") setDenied(true);
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          active.current = false;
+          clearIdle(true);
+          setDenied(true);
+        }
       };
       rec.onend = () => {
         if (silence.current) clearTimeout(silence.current);
@@ -319,7 +339,7 @@ export function VoicePanel({
         recRef.current = null;
         if (monitoring.current) {
           // Browser closed the monitor session while Maya is still talking — reopen it.
-          if (speaking.current && !ended.current) window.setTimeout(() => speaking.current && listen({ monitor: true }), 150);
+          if (speaking.current && !ended.current) window.setTimeout(() => speaking.current && listen({ monitor: true }), RESTART_MS);
           return;
         }
         const text = (finalText || heard).trim();
@@ -344,7 +364,7 @@ export function VoicePanel({
           onSend(text, intr);
         } else if (active.current && !ended.current) {
           // Browser ended the session on its own — keep listening until the user taps off.
-          window.setTimeout(() => active.current && listen(), 150);
+          window.setTimeout(() => active.current && !ended.current && listen(), RESTART_MS);
         } else setState("idle");
       };
       recRef.current = rec;
@@ -367,6 +387,7 @@ export function VoicePanel({
       const list = splitSentences(text);
       if (!list.length) return after();
       sentences.current = list;
+      heardSinceReply.current = false; // countdown restarts after each reply
       sentenceIdx.current = 0;
       speaking.current = true;
       const token = ++speakToken.current;
@@ -576,9 +597,14 @@ export function VoicePanel({
         <span role="status" className="flex min-w-0 items-center gap-2 text-sm text-warning">
           <MicOff className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="text-xs sm:text-sm">
-            {denied ? "Microphone blocked. " : ""}Voice works best in Chrome, Edge or Safari - you can chat with Maya here instead.
+            {denied ? "Microphone is off - allow mic access for this site" : "Voice works best in Chrome, Edge or Safari - you can chat with Maya here instead."}
           </span>
         </span>
+        {denied && (
+          <Button type="button" size="sm" variant="outline" className="min-h-11" onClick={() => { setDenied(false); beginVoiceSession(); }}>
+            Retry
+          </Button>
+        )}
       </div>
     );
 
@@ -592,6 +618,9 @@ export function VoicePanel({
   return (
     <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
       <span aria-live="polite" className="mr-auto truncate text-xs text-muted-foreground">
+        {state === "listening" && (
+          <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-primary motion-safe:animate-pulse" aria-hidden="true" />
+        )}
         {state === "idle" ? "" : label}
       </span>
       {(
