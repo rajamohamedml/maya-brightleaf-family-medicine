@@ -1,7 +1,7 @@
 // Browser-native voice mode for Maya: Web Speech API in, speechSynthesis out. Nothing leaves the browser except the final transcript.
 import type { UIMessage } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicOff, PhoneOff } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
 import { pickVoice, toSpeech, waitForVoices } from "./speech-text";
@@ -53,6 +53,38 @@ function hasBooking(m: UIMessage): boolean {
   );
 }
 
+export type Interruption = { sentence: string; unsaid: string[] };
+
+const VAD_THRESHOLD = 0.035; // RMS energy that counts as someone talking
+const VAD_HOLD_MS = 300; // talking must last this long
+const LOW_CONFIDENCE = 0.45;
+const NOT_CAUGHT = "Sorry, I didn't quite catch that. Could you say it again?";
+
+function splitSentences(text: string): string[] {
+  return (text.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) ?? []).map((x) => x.trim()).filter(Boolean);
+}
+
+const words = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9' ]/g, " ").split(/\s+/).filter(Boolean);
+
+/** True when what the mic heard is mostly Maya's own sentence coming back through the speakers. */
+function isEcho(heard: string, spoken: string): boolean {
+  const h = words(heard);
+  if (!h.length) return true;
+  const said = new Set(words(spoken));
+  return h.filter((w) => said.has(w)).length / h.length >= 0.6;
+}
+
+function utter(text: string) {
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.88;
+  u.pitch = 1.18;
+  const v = pickVoice();
+  if (v) u.voice = v;
+  return u;
+}
+
 export function VoicePanel({
   messages,
   busy,
@@ -65,7 +97,7 @@ export function VoicePanel({
   messages: UIMessage[];
   busy: boolean;
   onTranscript: (t: string) => void;
-  onSend: (t: string) => void;
+  onSend: (t: string, interruption?: Interruption) => void;
   onEnd: () => void;
   onSessionStart?: () => void;
   startSignal?: number;
@@ -87,6 +119,70 @@ export function VoicePanel({
   const handsFreeRef = useRef(handsFree);
   handsFreeRef.current = handsFree;
 
+  // Sentence queue: what Maya is saying now and what's still unsaid.
+  const sentences = useRef<string[]>([]);
+  const sentenceIdx = useRef(0);
+  const speaking = useRef(false);
+  // While Maya speaks, the recogniser runs in "monitor" mode and only reacts to a real interruption.
+  const monitoring = useRef(false);
+  const resultBase = useRef(0); // ignore recogniser results before this index (echo)
+  const resultCount = useRef(0);
+  const pendingInterruption = useRef<Interruption | null>(null);
+  // Voice-activity detection (Web Audio energy on an echo-cancelled mic stream).
+  const vad = useRef<{ stream: MediaStream; ctx: AudioContext; raf: number; loudSince: number | null; activeAt: number } | null>(null);
+  const vadAvailable = useRef(true);
+
+  const stopVad = useCallback(() => {
+    const v = vad.current;
+    if (!v) return;
+    cancelAnimationFrame(v.raf);
+    v.stream.getTracks().forEach((t) => t.stop());
+    void v.ctx.close().catch(() => {});
+    vad.current = null;
+  }, []);
+
+  const startVad = useCallback(() => {
+    if (vad.current || !navigator.mediaDevices?.getUserMedia) return;
+    navigator.mediaDevices
+      .getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+      .then((stream) => {
+        if (!speaking.current || ended.current) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        const ctx = new AudioContext();
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        ctx.createMediaStreamSource(stream).connect(analyser);
+        const buf = new Float32Array(analyser.fftSize);
+        const state = { stream, ctx, raf: 0, loudSince: null as number | null, activeAt: 0 };
+        const tick = () => {
+          analyser.getFloatTimeDomainData(buf);
+          let sum = 0;
+          for (const x of buf) sum += x * x;
+          const rms = Math.sqrt(sum / buf.length);
+          const now = performance.now();
+          if (rms > VAD_THRESHOLD) {
+            state.loudSince ??= now;
+            if (now - state.loudSince >= VAD_HOLD_MS) state.activeAt = now;
+          } else state.loudSince = null;
+          state.raf = requestAnimationFrame(tick);
+        };
+        tick();
+        vad.current = state;
+        vadAvailable.current = true;
+      })
+      .catch(() => {
+        vadAvailable.current = false; // fall back to the words-only check
+      });
+  }, []);
+
+  /** Someone has been talking for ~300ms within the last second. */
+  const voiceActive = () => {
+    if (!vad.current) return !vadAvailable.current;
+    return performance.now() - vad.current.activeAt < 1000;
+  };
+
   useEffect(() => {
     ended.current = false;
     setSupported(!!getRecCtor());
@@ -97,62 +193,153 @@ export function VoicePanel({
       recRef.current?.abort();
       window.speechSynthesis?.cancel();
       if (silence.current) clearTimeout(silence.current);
+      stopVad();
     };
-  }, []);
+  }, [stopVad]);
 
-  const listen = useCallback(() => {
-    const Ctor = getRecCtor();
-    if (!Ctor || ended.current) return;
+  /** Stop Maya mid-sentence and remember what she hadn't said yet. */
+  const cutSpeech = useCallback(() => {
+    if (speaking.current) {
+      const i = sentenceIdx.current;
+      pendingInterruption.current = {
+        sentence: sentences.current[i] ?? "",
+        unsaid: sentences.current.slice(i + 1),
+      };
+    }
+    speaking.current = false;
+    monitoring.current = false;
     speakToken.current++;
     window.speechSynthesis?.cancel();
-    recRef.current?.abort();
-    const rec = new Ctor();
-    rec.lang = "en-US";
-    rec.interimResults = true;
-    rec.continuous = true;
-    let finalText = "";
-    const arm = () => {
-      if (silence.current) clearTimeout(silence.current);
-      silence.current = setTimeout(() => rec.stop(), SILENCE_MS);
-    };
-    let heard = "";
-    rec.onresult = (e) => {
-      let interim = "";
-      finalText = "";
-      for (let i = 0; i < e.results.length; i++) {
-        const r = e.results[i];
-        if (r.isFinal) finalText += r[0].transcript;
-        else interim += r[0].transcript;
+    stopVad();
+  }, [stopVad]);
+
+  const listen = useCallback(
+    (opts?: { monitor?: boolean }) => {
+      const Ctor = getRecCtor();
+      if (!Ctor || ended.current) return;
+      const monitor = !!opts?.monitor;
+      if (!monitor) cutSpeech();
+      recRef.current?.abort();
+      const rec = new Ctor();
+      rec.lang = "en-US";
+      rec.interimResults = true;
+      rec.continuous = true;
+      monitoring.current = monitor;
+      resultBase.current = 0;
+      resultCount.current = 0;
+      let finalText = "";
+      let heard = "";
+      let confidence = 1;
+      const arm = () => {
+        if (silence.current) clearTimeout(silence.current);
+        silence.current = setTimeout(() => rec.stop(), SILENCE_MS);
+      };
+      rec.onresult = (e) => {
+        resultCount.current = e.results.length;
+        if (monitoring.current) {
+          // Barge-in check: real voice energy AND words that aren't Maya's own sentence.
+          let latest = "";
+          for (let i = resultBase.current; i < e.results.length; i++) latest += e.results[i][0].transcript;
+          const i = sentenceIdx.current;
+          const spoken = `${sentences.current[i - 1] ?? ""} ${sentences.current[i] ?? ""} ${sentences.current[i + 1] ?? ""}`;
+          if (isEcho(latest, spoken) || !voiceActive()) return;
+          cutSpeech();
+          resultBase.current = e.results.length - 1; // keep only the patient's words
+          setState("listening");
+        }
+        let interim = "";
+        finalText = "";
+        confidence = 1;
+        for (let i = resultBase.current; i < e.results.length; i++) {
+          const r = e.results[i];
+          if (r.isFinal) {
+            finalText += r[0].transcript;
+            if (typeof r[0].confidence === "number" && r[0].confidence > 0) confidence = Math.min(confidence, r[0].confidence);
+          } else interim += r[0].transcript;
+        }
+        heard = (finalText + interim).trim();
+        onTranscript(heard);
+        if (heard) arm(); // only stop after silence once something was said
+      };
+      rec.onerror = (e) => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") setDenied(true);
+      };
+      rec.onend = () => {
+        if (silence.current) clearTimeout(silence.current);
+        if (recRef.current !== rec) return;
+        recRef.current = null;
+        if (monitoring.current) {
+          // Browser closed the monitor session while Maya is still talking — reopen it.
+          if (speaking.current && !ended.current) window.setTimeout(() => speaking.current && listen({ monitor: true }), 150);
+          return;
+        }
+        const text = (finalText || heard).trim();
+        if (text && !ended.current) {
+          if (finalText && confidence < LOW_CONFIDENCE) {
+            // Unsure what was said: ask again instead of guessing.
+            onTranscript("");
+            const token = ++speakToken.current;
+            const u = utter(NOT_CAUGHT);
+            u.onend = u.onerror = () => {
+              if (token === speakToken.current && !ended.current && active.current) listen();
+            };
+            setState("speaking");
+            window.speechSynthesis?.cancel();
+            window.speechSynthesis?.speak(u);
+            return;
+          }
+          awaitingReply.current = true;
+          setState("thinking");
+          const intr = pendingInterruption.current ?? undefined;
+          pendingInterruption.current = null;
+          onSend(text, intr);
+        } else if (active.current && !ended.current) {
+          // Browser ended the session on its own — keep listening until the user taps off.
+          window.setTimeout(() => active.current && listen(), 150);
+        } else setState("idle");
+      };
+      recRef.current = rec;
+      try {
+        rec.start();
+        if (!monitor) setState("listening");
+      } catch {
+        if (!monitor) setState("idle");
       }
-      heard = (finalText + interim).trim();
-      onTranscript(heard);
-      if (heard) arm(); // only stop after silence once something was said
-    };
-    rec.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") setDenied(true);
-    };
-    rec.onend = () => {
-      if (silence.current) clearTimeout(silence.current);
-      if (recRef.current !== rec) return;
-      recRef.current = null;
-      const text = (finalText || heard).trim();
-      if (text && !ended.current) {
-        awaitingReply.current = true;
-        setState("thinking");
-        onSend(text);
-      } else if (active.current && !ended.current) {
-        // Browser ended the session on its own — keep listening until the user taps off.
-        window.setTimeout(() => active.current && listen(), 150);
-      } else setState("idle");
-    };
-    recRef.current = rec;
-    try {
-      rec.start();
-      setState("listening");
-    } catch {
-      setState("idle");
-    }
-  }, [onSend, onTranscript]);
+    },
+    [cutSpeech, onSend, onTranscript],
+  );
+
+  /** Speak a reply sentence by sentence, listening for a real interruption the whole time. */
+  const speakReply = useCallback(
+    (text: string, after: () => void, opts?: { monitor?: boolean }) => {
+      const list = splitSentences(text);
+      if (!list.length) return after();
+      sentences.current = list;
+      sentenceIdx.current = 0;
+      speaking.current = true;
+      const token = ++speakToken.current;
+      const play = (i: number) => {
+        if (token !== speakToken.current || ended.current) return;
+        if (i >= list.length) {
+          speaking.current = false;
+          stopVad();
+          return after();
+        }
+        sentenceIdx.current = i;
+        const u = utter(list[i]!);
+        u.onend = u.onerror = () => play(i + 1);
+        window.speechSynthesis.speak(u);
+      };
+      setState("speaking");
+      window.speechSynthesis.cancel();
+      play(0);
+      if (opts?.monitor && active.current && getRecCtor()) {
+        startVad();
+        listen({ monitor: true });
+      }
+    },
+    [listen, startVad, stopVad],
+  );
 
   const stopListening = () => {
     active.current = false;
@@ -171,30 +358,18 @@ export function VoicePanel({
     }
 
     greeted.current = true;
-    const speech = window.speechSynthesis;
-    if (!speech) {
+    if (!window.speechSynthesis) {
       setState("idle");
       listen();
       return;
     }
-
+    // The greeting plays before the mic opens, so Maya never hears herself.
     void waitForVoices().then(() => {
-      const token = ++speakToken.current;
-      const utterance = new SpeechSynthesisUtterance(VOICE_GREETING);
-      utterance.lang = "en-US";
-      utterance.rate = 0.88;
-      utterance.pitch = 1.18;
-      const voice = pickVoice();
-      if (voice) utterance.voice = voice;
-      utterance.onend = utterance.onerror = () => {
-        if (token !== speakToken.current || ended.current || !active.current) return;
-        listen();
-      };
-      setState("speaking");
-      speech.cancel();
-      speech.speak(utterance);
+      speakReply(VOICE_GREETING, () => {
+        if (!ended.current && active.current) listen();
+      });
     });
-  }, [listen, onSessionStart]);
+  }, [listen, onSessionStart, speakReply]);
 
   const requestStart = useCallback(() => {
     if (!getRecCtor()) {
@@ -227,6 +402,22 @@ export function VoicePanel({
           }`,
         )
       : "";
+    const afterReply = () => {
+      if (handsFreeRef.current && active.current && !ended.current) {
+        if (recRef.current && monitoring.current) {
+          // The monitor is already listening: switch it to normal listening, dropping the echo heard so far.
+          monitoring.current = false;
+          resultBase.current = resultCount.current;
+          setState("listening");
+        } else listen();
+      } else {
+        recRef.current?.abort();
+        recRef.current = null;
+        monitoring.current = false;
+        active.current = false;
+        setState("idle");
+      }
+    };
     if (!text) {
       setState("idle");
       return;
@@ -237,32 +428,19 @@ export function VoicePanel({
       else active.current = false;
       return;
     }
-    const token = ++speakToken.current;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "en-US";
-    u.rate = 0.88;
-    u.pitch = 1.18;
-    const v = pickVoice();
-    if (v) u.voice = v;
-    u.onend = u.onerror = () => {
-      if (token !== speakToken.current || ended.current) return;
-      setState("idle");
-      if (handsFreeRef.current && active.current) listen();
-      else active.current = false;
-    };
-    setState("speaking");
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  }, [busy, messages, listen]);
+    speakReply(text, afterReply, { monitor: true });
+  }, [busy, messages, listen, speakReply]);
+
+  /** Tap the mic or Stop while Maya talks: she stops at once and listens. */
+  const interrupt = () => {
+    active.current = true;
+    listen();
+  };
 
   const onMic = () => {
     if (state === "listening") return stopListening();
     if (state === "thinking") return;
-    if (state === "speaking") {
-      active.current = true;
-      listen(); // barge in while Maya is speaking, including during the greeting
-      return;
-    }
+    if (state === "speaking") return interrupt();
     requestStart();
   };
 
@@ -270,7 +448,11 @@ export function VoicePanel({
     ended.current = true;
     active.current = false;
     greeted.current = false;
+    speaking.current = false;
+    monitoring.current = false;
+    pendingInterruption.current = null;
     speakToken.current++;
+    stopVad();
     recRef.current?.abort();
     recRef.current = null;
     setState("idle");
@@ -279,14 +461,8 @@ export function VoicePanel({
     const speech = window.speechSynthesis;
     if (!speech) return;
     void waitForVoices().then(() => {
-      const u = new SpeechSynthesisUtterance(VOICE_FAREWELL);
-      u.lang = "en-US";
-      u.rate = 0.88;
-      u.pitch = 1.18;
-      const v = pickVoice();
-      if (v) u.voice = v;
       speech.cancel();
-      speech.speak(u);
+      speech.speak(utter(VOICE_FAREWELL));
     });
   };
 
@@ -304,7 +480,7 @@ export function VoicePanel({
     idle: "Tap the mic to talk",
     listening: "Listening…",
     thinking: "Maya is thinking…",
-    speaking: "Maya is speaking — tap to interrupt",
+    speaking: "Maya is speaking — just talk, or tap Stop",
   }[state];
 
   return (
@@ -322,6 +498,11 @@ export function VoicePanel({
           />
           Keep listening
         </label>
+      )}
+      {state === "speaking" && (
+        <Button type="button" size="sm" variant="ghost" onClick={interrupt} className="min-h-11 text-primary">
+          <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" /> Stop
+        </Button>
       )}
       {state !== "idle" && (
         <Button
