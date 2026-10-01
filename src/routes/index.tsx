@@ -212,16 +212,16 @@ function Landing() {
             <Clock className="h-5 w-5 text-primary" aria-hidden="true" />
             Hours
           </h2>
-          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+          <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
             {HOURS.map((h) => (
               <div key={h.days} className="contents">
-                <dt className="whitespace-nowrap">{h.days}</dt>
-                <dd className="whitespace-nowrap text-right text-muted-foreground">{h.time}</dd>
+                <dt>{h.days}</dt>
+                <dd className="text-right text-muted-foreground">{h.time}</dd>
               </div>
             ))}
           </dl>
           <p className="mt-2 text-sm text-muted-foreground">
-            <span className="whitespace-nowrap">Lunch 12–1 PM.</span> <span className="whitespace-nowrap">Wednesday 1–5 PM: telehealth only.</span>
+            Lunch 12–1 PM. Wednesday 1–5 PM: telehealth only.
           </p>
         </div>
         <div className="surface-tile rounded-xl border border-border p-5 transition-colors duration-200 hover:border-surface-hover">
