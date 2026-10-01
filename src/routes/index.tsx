@@ -10,6 +10,7 @@ import {
   Video,
   X,
   MessageCircle,
+  Mic,
   Sparkles,
   PlayCircle,
 } from "lucide-react";
@@ -102,9 +103,19 @@ function Landing() {
             </span>
             <span className="rounded bg-muted px-1.5 text-xs text-muted-foreground">fictional estimate</span>
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <Link to="/book" className={`${btn} bg-primary text-primary-foreground hover:bg-primary/90`}>
               <CalendarCheck className="h-5 w-5" aria-hidden="true" /> Book a visit
+            </Link>
+            <Link to="/chat" className={`${btn} border border-border hover:border-primary`}>
+              <MessageCircle className="h-5 w-5 text-primary" aria-hidden="true" /> Chat with Maya
+            </Link>
+            <Link
+              to="/chat"
+              search={{ voice: 1 }}
+              className={`${btn} border border-border text-primary hover:border-primary`}
+            >
+              <Mic className="h-5 w-5" aria-hidden="true" /> Talk to Maya
             </Link>
             {VIDEO_URL && (
               <Link to="/watch" className={`${btn} border border-border hover:border-primary`}>
