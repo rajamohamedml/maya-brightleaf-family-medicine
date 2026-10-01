@@ -16,7 +16,7 @@ import {
 } from "./scheduling.server";
 import { visitCodeForReason, WHAT_TO_BRING } from "./booking-rules";
 import { addDays, fmtSlot, localDateStr } from "./tz";
-import { refillSlot } from "./automations.server";
+import { refillFreedSlot } from "./automations.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 const phone = z.string().trim().refine((p) => p.replace(/\D/g, "").length >= 10, "Enter a 10-digit phone number");
@@ -491,8 +491,7 @@ export const upsertLead = createServerFn({ method: "POST" })
 /* ---------- waitlist refill (shared with the automation engine) ---------- */
 async function refillAfterChange(startAt: string, visitCode: string, what: string) {
   const now = await getNow();
-  const offered = await refillSlot(startAt, visitCode, now, origin());
-  await logRun("waitlist_refill", 0, { action: offered ? "offered" : "freed", text: `${what}${offered ? ` — offered the time to ${offered} from the waitlist.` : ". No waitlist match."}` });
+  await refillFreedSlot(startAt, visitCode, what, now, origin());
 }
 
 /* ---------- waitlist offer page ---------- */

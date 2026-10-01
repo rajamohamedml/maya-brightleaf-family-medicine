@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { addDays, isoDow, localDateStr, localMinutes, zonedToUtc } from "./tz";
 import { getRequest } from "@tanstack/react-start/server";
-import { runAutomations, summaryText } from "./automations.server";
+import { refillFreedSlot, runAutomations, summaryText } from "./automations.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const uuid = z.string().uuid();
@@ -114,8 +114,16 @@ export const setVisitStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertStaff(context);
     const sb = context.supabase;
-    const { data: a, error } = await sb.from("appointments").update({ status: data.status }).eq("id", data.id).select("patient_id").single();
+    const { data: a, error } = await sb.from("appointments").update({ status: data.status }).eq("id", data.id).select("patient_id,start_at,visit_types(code,name),patients(first_name,last_name)").single();
     if (error) throw error;
+    if (data.status === "cancelled" && a.visit_types?.code) {
+      const { getNow } = await import("./scheduling.server");
+      const now = await getNow();
+      if (Date.parse(a.start_at) > now.getTime()) {
+        const { fmtSlot } = await import("./tz");
+        await refillFreedSlot(a.start_at, a.visit_types.code, `Staff cancelled ${a.patients?.first_name ?? ""} ${a.patients?.last_name ?? ""}'s ${a.visit_types.name} on ${fmtSlot(a.start_at)}`.replace("  ", " "), now, origin());
+      }
+    }
     if (data.status === "no_show") {
       const { data: p } = await sb.from("patients").select("no_show_count").eq("id", a.patient_id).single();
       await sb.from("patients").update({ no_show_count: (p?.no_show_count ?? 0) + 1 }).eq("id", a.patient_id);
