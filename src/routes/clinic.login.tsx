@@ -61,9 +61,17 @@ function Login() {
             {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Sign in
           </Button>
         </form>
-        <p className="mt-4 text-sm text-muted-foreground">
-          Judges' demo login: demo@brightleaf.health / BrightleafDemo2026!
-        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setEmail("demo@brightleaf.health");
+            setPassword("BrightleafDemo2026!");
+            setError("");
+          }}
+          className="mt-4 text-sm text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          Click here for Judges demo login
+        </button>
       </main>
       <Footer />
     </div>
