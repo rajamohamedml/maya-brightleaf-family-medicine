@@ -595,13 +595,8 @@ export function VoicePanel({
       : "";
     const afterReply = () => {
       if (handsFreeRef.current && active.current && !ended.current) {
-        if (recRef.current && monitoring.current) {
-          // The monitor is already listening: switch it to normal listening, dropping the echo heard so far.
-          monitoring.current = false;
-          resultBase.current = resultCount.current;
-          setState("listening");
-          armIdle();
-        } else listen();
+        // The recogniser is already running: switch to normal listening (keeps any phrase in progress).
+        listen();
       } else {
         recRef.current?.abort();
         recRef.current = null;
@@ -691,6 +686,58 @@ export function VoicePanel({
     speech.speak(utter(VOICE_FAREWELL));
     startResumeWatch();
   };
+
+  /** Push-to-talk: everything said while held is one turn, sent on release. */
+  const pttDown = () => {
+    if (ptt.current || state === "thinking") return;
+    if (!active.current) {
+      if (!consented) return setShowNotice(true);
+      ended.current = false;
+      active.current = true;
+      greeted.current = true;
+      onSessionStart?.();
+      startVad();
+    }
+    ptt.current = true;
+    setPttHeld(true);
+    clearIdle(true);
+    if (silence.current) clearTimeout(silence.current);
+    listen();
+    note("ptt-down");
+  };
+  const pttUp = () => {
+    if (!ptt.current) return;
+    ptt.current = false;
+    setPttHeld(false);
+    note("ptt-up");
+    window.setTimeout(submitTurn, 600); // let the last words finalise
+  };
+  const pttRef = useRef({ down: pttDown, up: pttUp });
+  pttRef.current = { down: pttDown, up: pttUp };
+
+  useEffect(() => {
+    if (state === "idle" && !pttHeld) return;
+    const typing = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null;
+      return !!el && (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName) || el.isContentEditable);
+    };
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || e.repeat || typing(e.target)) return;
+      e.preventDefault();
+      pttRef.current.down();
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || typing(e.target)) return;
+      e.preventDefault();
+      pttRef.current.up();
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, [state, pttHeld]);
 
   if (!supported || denied)
     return (
