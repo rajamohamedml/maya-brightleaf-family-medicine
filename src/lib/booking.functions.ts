@@ -15,7 +15,7 @@ import {
   type Slot,
 } from "./scheduling.server";
 import { visitCodeForReason, WHAT_TO_BRING } from "./booking-rules";
-import { fmtSlot, localDateStr } from "./tz";
+import { addDays, fmtSlot, localDateStr } from "./tz";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 const phone = z.string().trim().refine((p) => p.replace(/\D/g, "").length >= 10, "Enter a 10-digit phone number");
@@ -375,7 +375,6 @@ export const joinWaitlist = createServerFn({ method: "POST" })
     const now = await getNow();
     const today = localDateStr(now);
     const earliest = data.earliest_date ?? today;
-    const { addDays } = await import("./tz");
     await db().from("waitlist").insert({
       patient_id: res.patient!.id,
       visit_type_codes: data.visit_type_codes,
