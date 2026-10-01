@@ -5,7 +5,7 @@ import { LeafMark } from "./Logo";
 const focus =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-function SideSwitch({ inClinic, email }: { inClinic: boolean; email?: string }) {
+function SideSwitch({ inClinic, email }: { inClinic: boolean; email?: string | undefined }) {
   const item = (active: boolean) =>
     `flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-sm transition-colors duration-150 md:px-3 ${focus} ${
       active ? "font-semibold text-primary" : "text-muted-foreground hover:text-primary"
