@@ -198,7 +198,7 @@ function Landing() {
             ))}
           </dl>
           <p className="mt-2 text-sm text-muted-foreground">
-            Lunch 12–1 PM. Wednesday afternoons are telehealth only.
+            <span className="whitespace-nowrap">Lunch 12–1 PM.</span> <span className="whitespace-nowrap">Wednesday 1–5 PM: telehealth only.</span>
           </p>
         </div>
         <div className="surface-tile rounded-xl border border-border p-5 transition-colors duration-200 hover:border-surface-hover">
