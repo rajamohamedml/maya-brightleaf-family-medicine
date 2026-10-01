@@ -36,7 +36,6 @@ import {
   upsertLead,
 } from "@/lib/booking.functions";
 import { EMERGENCY_MESSAGE, INSURER_OPTIONS, REASONS, SAFETY_QUESTION, WHAT_TO_BRING, type ReasonKey } from "@/lib/booking-rules";
-import { fmtSlot } from "@/lib/tz";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/book")({
@@ -582,7 +581,7 @@ function OtherRequest({ headingRef, onBack, onDone }: { headingRef: React.RefObj
       </div>
       <FormError msg={e.form} />
       <ActionBar><Button variant="cta" size="lg" className="w-full sm:w-auto" disabled={busy} onClick={submit}>{busy && <Loader2 className="animate-spin" />} Send request</Button></ActionBar>
-      <p className="mt-3 text-sm text-muted-foreground">Prefer to book? <button type="button" className="text-primary underline" onClick={onBack}>Pick another reason</button>. {fmtSlot.length ? "" : ""}</p>
+      <p className="mt-3 text-sm text-muted-foreground">Prefer to book? <button type="button" className="text-primary underline" onClick={onBack}>Pick another reason</button>.</p>
     </section>
   );
 }
