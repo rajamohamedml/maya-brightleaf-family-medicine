@@ -36,12 +36,44 @@ export function toSpeech(text: string): string {
     .trim();
 }
 
+// Gentle, warm female voices first (Samantha on Apple devices, Natural voices on
+// Windows), then any soft English voice. Known-harsh voices are skipped.
+const GENTLE_ORDER: RegExp[] = [
+  /Samantha/i,
+  /Ava/i,
+  /Aria/i,
+  /Jenny/i,
+  /Google US English/i,
+  /(Michelle|Serena|Vanessa|Kathy|Zira|Libby|Nova|Sonoma|Allison|Sandy|Shelley)/i,
+  /Natural/i,
+  /Female/i,
+];
+const HARSH = /\b(David|Mark|Fred|Male|James|Richard|George|Daniel)\b/i;
+
+function score(voice: SpeechSynthesisVoice): number {
+  const i = GENTLE_ORDER.findIndex((re) => re.test(voice.name));
+  return i === -1 ? GENTLE_ORDER.length : i;
+}
+
 export function pickVoice(): SpeechSynthesisVoice | undefined {
-  const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.replace("_", "-").startsWith("en-US"));
-  return (
-    voices.find((v) => /Samantha/i.test(v.name)) ??
-    voices.find((v) => /Google US English/i.test(v.name)) ??
-    voices.find((v) => /Natural/i.test(v.name)) ??
-    voices[0]
-  );
+  const all = window.speechSynthesis.getVoices();
+  const enUS = all.filter((v) => v.lang.replace("_", "-").startsWith("en-US") && !HARSH.test(v.name));
+  const ordered = [...enUS].sort((a, b) => score(a) - score(b));
+  return ordered[0] ?? enUS[0] ?? all.find((v) => v.lang.startsWith("en") && !HARSH.test(v.name)) ?? all[0];
+}
+
+// Browsers load their voice list asynchronously; until it arrives, speaking falls
+// back to the default (often rough-sounding) system voice. Wait briefly for it.
+export function waitForVoices(ms = 1500): Promise<void> {
+  const speech = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+  if (!speech || speech.getVoices().length > 0) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = () => {
+      speech.removeEventListener("voiceschanged", done);
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    speech.addEventListener("voiceschanged", done);
+  });
 }

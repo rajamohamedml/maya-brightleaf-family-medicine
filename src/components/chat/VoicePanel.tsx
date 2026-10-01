@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
-import { pickVoice, toSpeech } from "./speech-text";
+import { pickVoice, toSpeech, waitForVoices } from "./speech-text";
 
 type VState = "idle" | "listening" | "thinking" | "speaking";
 const CONSENT_KEY = "maya-voice-consent";
@@ -176,19 +176,22 @@ export function VoicePanel({
       return;
     }
 
-    const token = ++speakToken.current;
-    const utterance = new SpeechSynthesisUtterance(VOICE_GREETING);
-    utterance.lang = "en-US";
-    utterance.rate = 1.0;
-    const voice = pickVoice();
-    if (voice) utterance.voice = voice;
-    utterance.onend = utterance.onerror = () => {
-      if (token !== speakToken.current || ended.current || !active.current) return;
-      listen();
-    };
-    setState("speaking");
-    speech.cancel();
-    speech.speak(utterance);
+    void waitForVoices().then(() => {
+      const token = ++speakToken.current;
+      const utterance = new SpeechSynthesisUtterance(VOICE_GREETING);
+      utterance.lang = "en-US";
+      utterance.rate = 0.97;
+      utterance.pitch = 1.05;
+      const voice = pickVoice();
+      if (voice) utterance.voice = voice;
+      utterance.onend = utterance.onerror = () => {
+        if (token !== speakToken.current || ended.current || !active.current) return;
+        listen();
+      };
+      setState("speaking");
+      speech.cancel();
+      speech.speak(utterance);
+    });
   }, [listen, onSessionStart]);
 
   const requestStart = useCallback(() => {
@@ -231,7 +234,8 @@ export function VoicePanel({
     const token = ++speakToken.current;
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "en-US";
-    u.rate = 1.0;
+    u.rate = 0.97;
+    u.pitch = 1.05;
     const v = pickVoice();
     if (v) u.voice = v;
     u.onend = u.onerror = () => {
