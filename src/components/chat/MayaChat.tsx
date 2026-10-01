@@ -401,15 +401,44 @@ export function MayaChat({
     setEnded(true);
     setIdleStep(0);
     setVoiceSession(false);
+    setResumeVoice(false);
     saveLeadOnClose(messages);
   }, [messages]);
   const restart = () => {
+    clearChatSession();
     setEnded(false);
     setIdleStep(0);
+    setResumeVoice(false);
     setMessages([]);
     setInput("");
     setTimeout(focus, 0);
   };
+
+  // Restore this tab's conversation (sessionStorage) once, then keep it saved.
+  const [restored, setRestored] = useState(false);
+  const [resumeVoice, setResumeVoice] = useState(false);
+  const [page, setPage] = useState<ChatPage | null>(null);
+  useEffect(() => {
+    const s = loadChatSession();
+    if (s) {
+      setMessages(s.messages);
+      setEnded(s.ended);
+      setResumeVoice(s.voice && !s.ended && s.messages.length > 0);
+    }
+    setRestored(true);
+  }, [setMessages]);
+  useEffect(() => {
+    if (!restored || busy) return;
+    if (!ended && messages.length === 0) return clearChatSession();
+    // After an inactivity close only the "Conversation ended" state is kept — no transcript.
+    saveChatSession({ messages: ended ? [] : messages, voice: voiceSession || resumeVoice, ended });
+  }, [restored, busy, messages, ended, voiceSession, resumeVoice]);
+  // 30 minutes without activity: forget the stored conversation.
+  useEffect(() => {
+    if (!restored || messages.length === 0) return;
+    const t = setTimeout(clearChatSession, SESSION_IDLE_MS);
+    return () => clearTimeout(t);
+  }, [restored, messages.length, input]);
 
   // Text-chat inactivity: only after Maya's reply, paused while busy or typing (keystrokes reset it).
   const lastRole = messages.at(-1)?.role;
