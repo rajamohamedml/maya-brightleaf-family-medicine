@@ -27,7 +27,7 @@ type Msg = {
   channel: "sms" | "email";
   template: string;
   to_address: string;
-  subject?: string;
+  subject?: string | undefined;
   body: string;
   rule: string;
 };
