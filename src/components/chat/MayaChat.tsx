@@ -443,9 +443,9 @@ export function MayaChat({
           {error && (
             <div
               role="alert"
-              className="flex items-start gap-2 rounded-xl border border-warning/50 bg-warning/10 p-4"
+              className="popup-alert flex items-start gap-2 p-4"
             >
-              <AlertTriangle className="mt-0.5 h-5 w-5 text-warning" aria-hidden="true" />
+              <AlertTriangle className="mt-0.5 h-5 w-5 text-popup-strong" aria-hidden="true" />
               <p>
                 Maya is busy — use the{" "}
                 <Link to="/book" className="font-semibold text-primary underline">

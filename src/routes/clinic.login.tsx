@@ -53,7 +53,7 @@ function Login() {
             <Input id="password" type="password" autoComplete="current-password" className="min-h-11" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           {error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="popup-alert p-3 text-sm">
               {error}
             </p>
           )}
