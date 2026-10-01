@@ -93,8 +93,8 @@ export async function handleMayaChat(request: Request): Promise<Response> {
   const messages = Array.isArray(body?.messages) ? body!.messages.slice(-40) : [];
   if (!messages.length) return Response.json({ error: "No messages" }, { status: 400 });
 
-  // Hard safety gate: any red flag in the conversation stops booking entirely.
-  if (messages.some((m) => m.role === "user" && keywordEmergency(lastUserText([m])))) return emergencyResponse();
+  // Hard safety gate: a red flag in the newest patient message stops booking before any model call.
+  if (keywordEmergency(lastUserText(messages))) return emergencyResponse();
 
   const apiKey = process.env['LOVABLE_API_KEY'];
   if (!apiKey) return Response.json({ error: "AI is not configured" }, { status: 500 });
