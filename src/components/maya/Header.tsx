@@ -9,7 +9,7 @@ const focus =
 function SideSwitch({ inClinic }: { inClinic: boolean }) {
   const item = (active: boolean) =>
     `flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-sm transition-colors duration-150 md:px-3 ${focus} ${
-      active ? "font-semibold text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+      active ? "font-semibold text-primary" : "text-muted-foreground hover:text-primary"
     }`;
   return (
     <div className="flex items-center gap-1.5">
@@ -34,7 +34,7 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
 export function Header({ onSignOut }: { onSignOut?: () => void }) {
   const location = useLocation();
   const inClinic = location.pathname.startsWith("/clinic");
-  const link = `flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-foreground ${focus}`;
+  const link = `flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary ${focus}`;
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
