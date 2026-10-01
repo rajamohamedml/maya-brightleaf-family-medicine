@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Building2, CalendarCheck, Check, Clock, MapPin, MessageCircle, Mic, ShieldCheck, Video, X } from "lucide-react";
 import { PageShell } from "@/components/maya/PageShell";
-import { CLINIC, HOURS, INSURERS, VISIT_TYPES } from "@/lib/clinic-info";
+import { CLINIC, HOURS, INSURERS, VISIT_TYPES, VOICE_ENABLED } from "@/lib/clinic-info";
 import { getPublicImpact } from "@/lib/booking.functions";
 
 export const Route = createFileRoute("/")({
@@ -44,9 +44,9 @@ function Landing() {
           <Link to="/chat" className={`${btn} border border-input bg-card hover:border-surface-hover hover:bg-accent`}>
             <MessageCircle className="h-5 w-5" aria-hidden="true" /> Chat with Maya
           </Link>
-          <Link to="/chat" search={{ voice: 1 }} className={`${btn} text-primary hover:bg-accent`}>
+          {VOICE_ENABLED && <Link to="/chat" search={{ voice: 1 }} className={`${btn} text-primary hover:bg-accent`}>
             <Mic className="h-5 w-5" aria-hidden="true" /> Talk to Maya
-          </Link>
+          </Link>}
         </div>
       </section>
 

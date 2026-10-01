@@ -24,3 +24,6 @@ export const HOURS = [
   { days: "Fri", time: "8:00 AM – 3:00 PM" },
   { days: "Sat–Sun", time: "Closed" },
 ];
+
+// Voice ("Talk to Maya") ships in a later step; hidden everywhere until configured.
+export const VOICE_ENABLED = false;
