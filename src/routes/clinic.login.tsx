@@ -57,7 +57,7 @@ function Login() {
               {error}
             </p>
           )}
-          <Button type="submit" variant="cta" className="min-h-11 w-full" disabled={busy || !email || !password}>
+          <Button type="submit" className="min-h-11 w-full" disabled={busy || !email || !password}>
             {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />} Sign in
           </Button>
         </form>
