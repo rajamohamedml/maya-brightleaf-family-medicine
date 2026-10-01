@@ -14,6 +14,7 @@ import { SlotPicker, type PickedSlot } from "@/components/booking/SlotPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { addDays, fmtDay, fmtLongDay, fmtTime, localMinutes, localDateStr, zonedToUtc } from "@/lib/tz";
 import { INSURERS, VISIT_TYPES } from "@/lib/clinic-info";
@@ -129,7 +130,19 @@ function Schedule() {
           </Button>
         </div>
 
-        <VisitLegend className="col-span-full mt-1 sm:row-start-2 xl:row-start-1 xl:col-start-2 xl:col-span-2 xl:justify-self-end" />
+        <div className="col-span-full mt-1 flex items-center justify-between gap-3 sm:row-start-2 xl:row-start-2 xl:col-span-3">
+          <LegendList className="hidden md:flex" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="min-h-11 md:hidden" aria-label="Show colour legend">
+                <SwatchBook className="h-4 w-4" aria-hidden="true" /> Legend
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64">
+              <LegendList className="flex-col items-start gap-2" />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
 
@@ -211,12 +224,6 @@ function Schedule() {
           </div>
         </div>
       )}
-
-      <ul className="mt-3 flex flex-wrap gap-2 text-sm" aria-label="Legend">
-        {VISIT_TYPES.map((v) => (
-          <li key={v.code} className={cn("rounded-full border-l-4 border-y border-r px-2.5 py-1 text-foreground", VISIT_SCHEDULE_COLOR[v.code])}>{v.name}</li>
-        ))}
-      </ul>
 
       <Sheet open={!!open} onOpenChange={(o) => !o && setOpenId(null)}>
         <SheetContent>
