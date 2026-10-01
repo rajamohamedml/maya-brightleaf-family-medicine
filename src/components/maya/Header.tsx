@@ -36,7 +36,7 @@ function SideSwitch({ inClinic, email }: { inClinic: boolean; email?: string }) 
   );
 }
 
-export function Header({ onSignOut, email }: { onSignOut?: () => void; email?: string }) {
+export function Header({ onSignOut, email }: { onSignOut?: () => void; email?: string | undefined }) {
   const location = useLocation();
   const inClinic = location.pathname.startsWith("/clinic");
   const link = `flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-primary ${focus}`;
