@@ -16,3 +16,4 @@
 - `/clinic` is a layout route (`clinic.tsx`) with desktop left nav and mobile bottom tabs.
 - All slot math lives in `src/lib/scheduling.server.ts`; every patient action goes through server functions in `src/lib/booking.functions.ts` (zod-validated, service role) — one scheduling brain, and anon users never touch tables. The DB exclusion constraint is the final guard against double booking.
 - Clinic-time math uses `src/lib/tz.ts` (Intl only, America/Chicago) — no extra date library needed.
+- Staff area: all /clinic data goes through `src/lib/staff.functions.ts` (requireSupabaseAuth + has_role 'staff'), and RLS on every table requires the staff role — two independent guards. Staff 'Add visit' reuses bookAppointment with source 'staff', which re-checks the staff role server-side.
