@@ -2,7 +2,9 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { ChatPagePanel, OpenChatPage, useOpenChatPage, type ChatPage } from "./ChatPagePanel";
+import { clearChatSession, loadChatSession, saveChatSession, SESSION_IDLE_MS } from "./chat-session";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -125,6 +127,21 @@ function EmergencyCard() {
   );
 }
 
+function PageLink({ kind, token, className, children }: { kind: "visit" | "intake"; token: string; className: string; children: ReactNode }) {
+  const open = useOpenChatPage();
+  if (open)
+    return (
+      <button type="button" onClick={() => open({ kind, token })} className={className}>
+        {children}
+      </button>
+    );
+  return kind === "visit" ? (
+    <Link to="/visit/$token" params={{ token }} className={className}>{children}</Link>
+  ) : (
+    <Link to="/intake/$token" params={{ token }} className={className}>{children}</Link>
+  );
+}
+
 function BookedCard({ b }: { b: Booked }) {
   return (
     <div className="rounded-xl border border-success/50 bg-success/10 p-4">
@@ -136,20 +153,20 @@ function BookedCard({ b }: { b: Booked }) {
         {fmtLongDay(b.visit.start_at)} · {fmtTime(b.visit.start_at)} Central Time
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link
-          to="/visit/$token"
-          params={{ token: b.manage_url.split("/").pop() ?? "" }}
+        <PageLink
+          kind="visit"
+          token={b.manage_url.split("/").pop() ?? ""}
           className="inline-flex min-h-11 items-center rounded-xl bg-cta px-4 font-semibold text-cta-foreground hover:bg-cta/90"
         >
           Manage visit
-        </Link>
-        <Link
-          to="/intake/$token"
-          params={{ token: b.intake_url.split("/").pop() ?? "" }}
+        </PageLink>
+        <PageLink
+          kind="intake"
+          token={b.intake_url.split("/").pop() ?? ""}
           className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent"
         >
           Complete intake
-        </Link>
+        </PageLink>
         <button
           type="button"
           onClick={() => addVisitToCalendar(b.visit)}
@@ -218,10 +235,10 @@ function ChangedCard({ o }: { o: any }) {
           {fmtLongDay(o.new_start_at)} · {fmtTime(o.new_start_at)} Central Time
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link to="/visit/$token" params={{ token: o.manage_token }}
+          <PageLink kind="visit" token={o.manage_token}
             className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent">
             Manage visit
-          </Link>
+          </PageLink>
           <button type="button"
             onClick={() => addVisitToCalendar({ name: o.visit_name, start_at: o.new_start_at, end_at: o.new_end_at, mode: o.mode })}
             className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent">
