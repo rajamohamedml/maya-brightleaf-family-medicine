@@ -185,10 +185,10 @@ function ActivityPage() {
         <h1 id="impact" className="text-2xl font-semibold">Impact</h1>
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-5">
           <Stat icon={Clock} value={`${hrs(d.impact.minutes_today)} h`} label="Hours saved today" sub={`${hrs(d.impact.minutes_week)} h last 7 days`} estimate />
-          <Stat icon={CalendarCheck} value={d.impact.booked_without_staff} label="Visits booked without staff" />
-          <Stat icon={UserCheck} value={d.impact.no_shows_prevented} label="No-shows prevented" sub={`${d.impact.released} released · ${d.impact.refilled} refilled`} />
-          <Stat icon={Users} value={d.impact.refilled} label="Slots refilled from waitlist" />
-          <Stat icon={PhoneOff} value={d.impact.calls_avoided} label="Calls avoided" />
+          <Stat icon={CalendarCheck} value={d.impact.booked_without_staff} label="Visits booked without staff" sub={`${d.impact.booked_without_staff_week} last 7 days`} />
+          <Stat icon={UserCheck} value={d.impact.no_shows_prevented} label="No-shows prevented" sub={`${d.impact.no_shows_prevented_week} last 7 days`} />
+          <Stat icon={Users} value={d.impact.refilled} label="Slots refilled from waitlist" sub={`${d.impact.refilled_week} last 7 days`} />
+          <Stat icon={PhoneOff} value={d.impact.calls_avoided} label="Calls avoided" sub={`${d.impact.calls_avoided_week} last 7 days`} />
         </div>
         <p className="mt-2 text-sm text-muted-foreground">Estimates based on the clinic's time per task (fictional client).</p>
       </section>
