@@ -298,7 +298,7 @@ export function MayaChat({
         </div>
         <span className="ml-auto inline-flex items-center gap-2 text-sm text-success">
           <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
-          Available
+          Online
         </span>
       </div>
 
