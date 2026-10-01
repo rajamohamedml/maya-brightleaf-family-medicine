@@ -10,7 +10,7 @@ const uuid = z.string().uuid();
 const BLOCKING = ["confirmed", "reconfirmed", "arrived"];
 const DOW_KEY = ["", "mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
-type Ctx = { supabase: Awaited<ReturnType<typeof import("@supabase/supabase-js").createClient>> | any; userId: string };
+type Ctx = { supabase: any; userId: string };
 
 async function assertStaff(ctx: Ctx) {
   const { data } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "staff" });
