@@ -12,6 +12,7 @@ import {
   ClipboardList,
   FileText,
   Inbox,
+  Info,
   Loader2,
   Mail,
   MessageSquare,
@@ -28,6 +29,8 @@ import { getActivity, resetDemo, setDemoClock } from "@/lib/staff.functions";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
 import { EmptyState } from "@/components/maya/EmptyState";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { fmtLongDay, fmtSlot, fmtTime } from "@/lib/tz";
 
 export const Route = createFileRoute("/clinic/activity")({
@@ -43,13 +46,14 @@ export const Route = createFileRoute("/clinic/activity")({
 });
 
 type ClockAction = "plus_hour" | "plus_day" | "plus_2days" | "tomorrow_7am" | "real_time" | "run_only";
-const CLOCK_BUTTONS: { action: ClockAction; label: string; icon: LucideIcon }[] = [
-  { action: "plus_hour", label: "+1 hour", icon: Clock },
-  { action: "plus_day", label: "+1 day", icon: Clock },
-  { action: "plus_2days", label: "+2 days", icon: Clock },
-  { action: "tomorrow_7am", label: "7:00am tomorrow", icon: BellRing },
-  { action: "real_time", label: "Reset to real time", icon: RotateCcw },
+const CLOCK_BUTTONS: { action: ClockAction; label: string; tip: string; icon: LucideIcon }[] = [
+  { action: "plus_hour", label: "+1 hour", tip: "Jump ahead one hour. Good for seeing a waitlist offer expire.", icon: Clock },
+  { action: "plus_day", label: "+1 day", tip: "Jump ahead one day. Reminders and reconfirm requests go out.", icon: Clock },
+  { action: "plus_2days", label: "+2 days", tip: "Jump ahead two days. Unconfirmed visits get released and offered to the waitlist.", icon: Clock },
+  { action: "tomorrow_7am", label: "7:00am tomorrow", tip: "Jump to tomorrow at 7am, when same-day sick slots open.", icon: BellRing },
+  { action: "real_time", label: "Reset to real time", tip: "Stop simulating and use today's real date and time.", icon: RotateCcw },
 ];
+const RUN_TIP = "Run Maya's checks at the current time without moving the clock.";
 
 const RULE: Record<string, { icon: LucideIcon; label: string }> = {
   self_service_booking: { icon: CalendarCheck, label: "Booking" },
