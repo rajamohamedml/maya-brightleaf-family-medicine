@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Mic, Stethoscope, Users, LogOut, Lock, Eye } from "lucide-react";
+import { Mic, Stethoscope, Users, LogOut, Lock } from "lucide-react";
 import { LeafMark } from "./Logo";
 import { VOICE_ENABLED } from "@/lib/clinic-info";
 
