@@ -36,7 +36,49 @@ import { addVisitToCalendar } from "@/components/booking/VisitCard";
 import { createTask } from "@/lib/booking.functions";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
 import { fmtLongDay, fmtTime } from "@/lib/tz";
-import { VoicePanel, VOICE_FAREWELL, VOICE_GREETING } from "./VoicePanel";
+import { IDLE_PROMPTS, VoicePanel, VOICE_FAREWELL, VOICE_GREETING } from "./VoicePanel";
+import { upsertLead } from "@/lib/booking.functions";
+
+const TEXT_IDLE_MS = [45_000, 30_000, 30_000];
+
+/** The newest Maya message shows the 911/988 screen. */
+function showsEmergency(messages: UIMessage[]) {
+  const last = [...messages].reverse().find((m) => m.role === "assistant" && !m.id.startsWith("idle-"));
+  return !!last?.parts.some((p) => {
+    if (p.type === "data-emergency") return true;
+    const t = p as { type: string; output?: { emergency?: boolean } };
+    return t.type === "tool-check_emergency" && !!t.output?.emergency;
+  });
+}
+
+/** Refresh the conversation's lead (from save_progress) so staff and the lead nudge can follow up. */
+function saveLeadOnClose(messages: UIMessage[]) {
+  for (const m of [...messages].reverse()) {
+    for (const p of [...m.parts].reverse()) {
+      const t = p as { type: string; input?: Record<string, string | null>; output?: { lead_id?: string } };
+      if (t.type !== "tool-save_progress" || !t.input) continue;
+      const { lead_id: _ignored, ...rest } = t.input;
+      const data = Object.fromEntries(Object.entries(rest).filter(([, v]) => v)) as Record<string, string>;
+      const id = t.output?.lead_id;
+      void upsertLead({ data: { ...data, ...(id ? { id } : {}), step_reached: "patient", source: "chat" } }).catch(() => {});
+      return;
+    }
+  }
+}
+
+function EndedCard({ onRestart }: { onRestart: () => void }) {
+  return (
+    <div role="status" className="popup-alert flex flex-col items-start gap-3 p-4">
+      <p className="flex items-center gap-2 font-semibold">
+        <CheckCircle2 className="h-5 w-5 text-popup-accent" aria-hidden="true" /> Conversation ended
+      </p>
+      <p className="text-sm text-muted-foreground">Maya closed the chat after a quiet spell. You can pick up again any time.</p>
+      <Button type="button" className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={onRestart}>
+        Start again
+      </Button>
+    </div>
+  );
+}
 
 const STARTERS = [
   "I'm new and need a physical",
@@ -330,9 +372,44 @@ export function MayaChat({
   const [voiceStartSignal, setVoiceStartSignal] = useState(0);
   const busy = status === "submitted" || status === "streaming";
   const wrap = useRef<HTMLDivElement>(null);
+  const [ended, setEnded] = useState(false);
+  const [idleStep, setIdleStep] = useState(0);
+  const emergency = showsEmergency(messages);
+  const addMaya = useCallback(
+    (text: string) =>
+      setMessages((current) => [...current, { id: `idle-${Date.now()}`, role: "assistant", parts: [{ type: "text", text }] }]),
+    [setMessages],
+  );
+  const closeChat = useCallback(() => {
+    setEnded(true);
+    setIdleStep(0);
+    setVoiceSession(false);
+    saveLeadOnClose(messages);
+  }, [messages]);
+  const restart = () => {
+    setEnded(false);
+    setIdleStep(0);
+    setMessages([]);
+    setInput("");
+    setTimeout(focus, 0);
+  };
+
+  // Text-chat inactivity: only after Maya's reply, paused while busy or typing (keystrokes reset it).
+  const lastRole = messages.at(-1)?.role;
+  useEffect(() => {
+    if (voiceSession || ended || busy || emergency || lastRole !== "assistant") return;
+    const t = setTimeout(() => {
+      const text = IDLE_PROMPTS[idleStep] ?? IDLE_PROMPTS[2];
+      addMaya(text);
+      if (idleStep >= 2) closeChat();
+      else setIdleStep(idleStep + 1);
+    }, TEXT_IDLE_MS[idleStep] ?? 30_000);
+    return () => clearTimeout(t);
+  }, [voiceSession, ended, busy, emergency, lastRole, idleStep, input, messages.length, addMaya, closeChat]);
 
   const sendVoice = useCallback(
     (text: string, interruption?: { sentence: string; unsaid: string[] }) => {
+      setIdleStep(0);
       sendMessage({ text }, { body: { channel: "voice", ...(interruption ? { interruption } : {}) } });
       setInput("");
     },
@@ -345,7 +422,8 @@ export function MayaChat({
   }, [busy]);
 
   const send = (text: string) => {
-    if (!text.trim() || busy) return;
+    if (!text.trim() || busy || ended) return;
+    setIdleStep(0);
     sendMessage({ text });
     setInput("");
   };
@@ -440,6 +518,7 @@ export function MayaChat({
               </span>
             </div>
           )}
+          {ended && <EndedCard onRestart={restart} />}
           {error && (
             <div
               role="alert"
@@ -466,6 +545,7 @@ export function MayaChat({
             placeholder="Type your message…"
             value={input}
             onChange={(e) => setInput(e.currentTarget.value)}
+            disabled={ended}
             className="text-[15px]"
           />
           <PromptInputFooter className="items-center gap-1">
@@ -488,6 +568,9 @@ export function MayaChat({
               }}
               onSessionStart={() => setVoiceSession(true)}
               startSignal={voiceStartSignal}
+              emergency={emergency}
+              onIdlePrompt={addMaya}
+              onIdleClose={closeChat}
             />
             <PromptInputSubmit
               status={status}

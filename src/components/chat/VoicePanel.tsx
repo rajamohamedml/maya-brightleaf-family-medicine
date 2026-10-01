@@ -393,6 +393,7 @@ export function VoicePanel({
   const beginVoiceSession = useCallback(() => {
     if (ended.current) ended.current = false;
     active.current = true;
+    clearIdle(true);
     onSessionStart?.();
     if (greeted.current) {
       listen();
@@ -411,7 +412,7 @@ export function VoicePanel({
         if (!ended.current && active.current) listen();
       });
     });
-  }, [listen, onSessionStart, speakReply]);
+  }, [listen, onSessionStart, speakReply, clearIdle]);
 
   const requestStart = useCallback(() => {
     if (!getRecCtor()) {
