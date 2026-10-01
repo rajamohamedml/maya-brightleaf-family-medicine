@@ -58,8 +58,8 @@ function BookedCard({ b }: { b: Booked }) {
         {fmtLongDay(b.visit.start_at)} · {fmtTime(b.visit.start_at)} Central Time
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <a href={b.manage_url} className="inline-flex min-h-11 items-center rounded-xl bg-cta px-4 font-semibold text-cta-foreground hover:bg-cta/90">Manage visit</a>
-        <a href={b.intake_url} className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent">Complete intake</a>
+        <Link to="/visit/$token" params={{ token: b.manage_url.split("/").pop() ?? "" }} className="inline-flex min-h-11 items-center rounded-xl bg-cta px-4 font-semibold text-cta-foreground hover:bg-cta/90">Manage visit</Link>
+        <Link to="/intake/$token" params={{ token: b.intake_url.split("/").pop() ?? "" }} className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent">Complete intake</Link>
         <button type="button" onClick={() => addVisitToCalendar(b.visit)} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent">
           <CalendarPlus className="h-4 w-4" aria-hidden="true" /> Add to calendar
         </button>
