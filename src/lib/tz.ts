@@ -14,9 +14,15 @@ const partsFmt = new Intl.DateTimeFormat("en-US", {
 function parts(d: Date) {
   const p: Record<string, number> = {};
   for (const x of partsFmt.formatToParts(d)) if (x.type !== "literal") p[x.type] = Number(x.value);
-  return { y: p.year, m: p.month, d: p.day, h: p.hour === 24 ? 0 : p.hour, mi: p.minute };
+  const g = (k: string) => p[k] ?? 0;
+  const h = g("hour");
+  return { y: g("year"), m: g("month"), d: g("day"), h: h === 24 ? 0 : h, mi: g("minute") };
 }
 
+const ymd = (date: string): [number, number, number] => {
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
+  return [y, m, d];
+};
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** Local clinic date as YYYY-MM-DD. */
@@ -39,7 +45,7 @@ function offsetMs(t: number): number {
 
 /** Convert a local clinic date + minutes after midnight to a UTC Date. */
 export function zonedToUtc(date: string, minutes: number): Date {
-  const [y, m, d] = date.split("-").map(Number);
+  const [y, m, d] = ymd(date);
   const guess = Date.UTC(y, m - 1, d, 0, minutes);
   let t = guess - offsetMs(guess);
   const t2 = guess - offsetMs(t);
@@ -48,14 +54,14 @@ export function zonedToUtc(date: string, minutes: number): Date {
 }
 
 export function addDays(date: string, n: number): string {
-  const [y, m, d] = date.split("-").map(Number);
+  const [y, m, d] = ymd(date);
   const dt = new Date(Date.UTC(y, m - 1, d + n));
   return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
 }
 
 /** ISO weekday 1=Mon..7=Sun for a YYYY-MM-DD date. */
 export function isoDow(date: string): number {
-  const [y, m, d] = date.split("-").map(Number);
+  const [y, m, d] = ymd(date);
   const w = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
   return w === 0 ? 7 : w;
 }

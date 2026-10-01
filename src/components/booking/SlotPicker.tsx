@@ -100,14 +100,14 @@ export function SlotPicker({
       </EmptyState>
     );
 
-  const firstStart = res.groups[0].slots[0].start_at;
+  const firstStart = res.groups[0]?.slots[0]?.start_at;
   return (
     <div className="space-y-6">
       {res.groups.map((g) => {
         const show = expanded[g.date] ? g.slots : g.slots.slice(0, PER_DAY);
         return (
-          <section key={g.date} aria-label={fmtDay(g.slots[0].start_at)}>
-            <h3 className="text-base font-semibold">{fmtDay(g.slots[0].start_at)}</h3>
+          <section key={g.date} aria-label={fmtDay(g.slots[0]!.start_at)}>
+            <h3 className="text-base font-semibold">{fmtDay(g.slots[0]!.start_at)}</h3>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {show.map((s) => {
                 const isSel = selected?.start_at === s.start_at;

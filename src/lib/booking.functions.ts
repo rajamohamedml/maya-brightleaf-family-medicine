@@ -78,7 +78,7 @@ export const resolveVisit = createServerFn({ method: "POST" })
       modes: vt.modes as ("in_person" | "telehealth")[],
       patient_is_new: isNew,
       eligibility: elig,
-      eligibility_message: elig ? ELIGIBILITY_MSG[elig] : null,
+      eligibility_message: elig ? (ELIGIBILITY_MSG[elig] ?? null) : null,
     };
   });
 
@@ -101,7 +101,7 @@ export const getAvailability = createServerFn({ method: "POST" })
     const vt = await loadVisitType(data.visit_type_code);
     if (!vt) return err("unknown_visit_type", "That visit type isn't available.");
     const elig = checkEligibility(vt, data.mode, data.patient_is_new);
-    if (elig) return err(elig, ELIGIBILITY_MSG[elig]);
+    if (elig) return err(elig, ELIGIBILITY_MSG[elig] ?? "Not available.");
     let excludeId: string | undefined;
     if (data.exclude_token) {
       const { data: a } = await db().from("appointments").select("id").eq("manage_token", data.exclude_token).maybeSingle();
@@ -181,7 +181,7 @@ export const bookAppointment = createServerFn({ method: "POST" })
     if (res.error) return res.error;
     const patient = res.patient!;
     const elig = checkEligibility(vt, data.mode, patient.is_new, patient.insurer);
-    if (elig) return err(elig, ELIGIBILITY_MSG[elig]);
+    if (elig) return err(elig, ELIGIBILITY_MSG[elig] ?? "Not available.");
 
     const now = await getNow();
     const taken = async () => ({

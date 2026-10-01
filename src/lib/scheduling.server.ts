@@ -57,7 +57,7 @@ export function checkEligibility(
 }
 
 const hm = (s: string) => {
-  const [h, m] = s.split(":").map(Number);
+  const [h = 0, m = 0] = s.split(":").map(Number);
   return h * 60 + m;
 };
 const overlaps = (a0: number, a1: number, b0: number, b1: number) => a0 < b1 && b0 < a1;
@@ -69,7 +69,7 @@ export async function computeSlots(o: {
   days: number;
   window: SlotWindow;
   now: Date;
-  excludeAppointmentId?: string;
+  excludeAppointmentId?: string | undefined;
 }): Promise<Slot[]> {
   const { vt, mode, now } = o;
   const today = localDateStr(now);
@@ -152,7 +152,7 @@ export async function findSlot(o: {
   mode: VisitMode;
   startAt: string;
   now: Date;
-  excludeAppointmentId?: string;
+  excludeAppointmentId?: string | undefined;
 }): Promise<Slot | null> {
   const date = localDateStr(new Date(o.startAt));
   const slots = await computeSlots({ ...o, fromDate: date, days: 1, window: "any" });
@@ -167,7 +167,7 @@ export async function nextSlots(o: {
   after: string;
   now: Date;
   count?: number;
-  excludeAppointmentId?: string;
+  excludeAppointmentId?: string | undefined;
 }): Promise<Slot[]> {
   const from = localDateStr(new Date(o.after));
   const slots = await computeSlots({ ...o, fromDate: from, days: 14, window: "any" });
