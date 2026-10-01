@@ -159,15 +159,15 @@ function ActivityPage() {
                     This page shows what Maya does on her own. The clock lets you fast-forward time to watch her follow-ups happen — nothing is actually sent.
                   </p>
                   <ul className="mt-3 space-y-2 text-sm">
-                    <li><span className="font-semibold">+1 hour</span> — jump ahead one hour. Good for seeing a waitlist offer expire.</li>
-                    <li><span className="font-semibold">+1 day</span> — jump ahead one day. Reminders and reconfirm requests go out.</li>
-                    <li><span className="font-semibold">+2 days</span> — jump ahead two days. Unconfirmed visits get released and offered to the waitlist.</li>
+                    <li><span className="font-semibold">Run automations now</span> — Maya checks everything due at the current time, without moving the clock: sends intake and reconfirm reminders, releases visits that weren't reconfirmed in time, offers freed slots to the waitlist, nudges people who didn't finish booking, sends recall reminders and replies to refill/records requests. Running it twice never sends anything twice.</li>
+                    <li><span className="font-semibold">+1 hour</span> — jump ahead one hour, then run the checks. Good for seeing a waitlist offer expire.</li>
+                    <li><span className="font-semibold">+1 day</span> — jump ahead one day, then run the checks. Reminders and reconfirm requests go out.</li>
+                    <li><span className="font-semibold">+2 days</span> — jump ahead two days, then run the checks. Unconfirmed visits get released and offered to the waitlist.</li>
                     <li><span className="font-semibold">7:00am tomorrow</span> — jump to tomorrow at 7am, when same-day sick slots open.</li>
                     <li><span className="font-semibold">Reset to real time</span> — stop simulating and use today's real date and time.</li>
-                    <li><span className="font-semibold">Run automations now</span> — run Maya's checks at the current time without moving the clock.</li>
                   </ul>
                   <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
-                    Tip: try <span className="font-semibold">Cancel a visit</span> in Schedule, then <span className="font-semibold">+1 day</span> twice, and watch What Maya did and the Outbox.
+                    Tip: cancel a visit in Schedule, then press +1 day twice, and watch What Maya did and the Outbox.
                   </p>
                 </PopoverContent>
               </Popover>
