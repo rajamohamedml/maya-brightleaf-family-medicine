@@ -578,6 +578,17 @@ export function MayaChat({
               </span>
             </div>
           )}
+          {resumeVoice && !voiceSession && !ended && (
+            <div className="pl-12">
+              <Button
+                type="button"
+                className="min-h-12 bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                onClick={() => setVoiceStartSignal((value) => value + 1)}
+              >
+                Resume talking to Maya
+              </Button>
+            </div>
+          )}
           {ended && <EndedCard onRestart={restart} />}
           {error && (
             <div
@@ -665,5 +676,6 @@ export function MayaChat({
         {callback && <CallbackForm onDone={() => setCallback(false)} />}
       </div>
     </div>
+    </OpenChatPage.Provider>
   );
 }
