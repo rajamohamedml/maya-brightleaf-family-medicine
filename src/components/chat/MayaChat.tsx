@@ -2,7 +2,9 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { ChatPagePanel, OpenChatPage, useOpenChatPage, type ChatPage } from "./ChatPagePanel";
+import { clearChatSession, loadChatSession, saveChatSession, SESSION_IDLE_MS } from "./chat-session";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -125,6 +127,21 @@ function EmergencyCard() {
   );
 }
 
+function PageLink({ kind, token, className, children }: { kind: "visit" | "intake"; token: string; className: string; children: ReactNode }) {
+  const open = useOpenChatPage();
+  if (open)
+    return (
+      <button type="button" onClick={() => open({ kind, token })} className={className}>
+        {children}
+      </button>
+    );
+  return kind === "visit" ? (
+    <Link to="/visit/$token" params={{ token }} className={className}>{children}</Link>
+  ) : (
+    <Link to="/intake/$token" params={{ token }} className={className}>{children}</Link>
+  );
+}
+
 function BookedCard({ b }: { b: Booked }) {
   return (
     <div className="rounded-xl border border-success/50 bg-success/10 p-4">
@@ -136,20 +153,20 @@ function BookedCard({ b }: { b: Booked }) {
         {fmtLongDay(b.visit.start_at)} · {fmtTime(b.visit.start_at)} Central Time
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link
-          to="/visit/$token"
-          params={{ token: b.manage_url.split("/").pop() ?? "" }}
+        <PageLink
+          kind="visit"
+          token={b.manage_url.split("/").pop() ?? ""}
           className="inline-flex min-h-11 items-center rounded-xl bg-cta px-4 font-semibold text-cta-foreground hover:bg-cta/90"
         >
           Manage visit
-        </Link>
-        <Link
-          to="/intake/$token"
-          params={{ token: b.intake_url.split("/").pop() ?? "" }}
+        </PageLink>
+        <PageLink
+          kind="intake"
+          token={b.intake_url.split("/").pop() ?? ""}
           className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent"
         >
           Complete intake
-        </Link>
+        </PageLink>
         <button
           type="button"
           onClick={() => addVisitToCalendar(b.visit)}
@@ -218,10 +235,10 @@ function ChangedCard({ o }: { o: any }) {
           {fmtLongDay(o.new_start_at)} · {fmtTime(o.new_start_at)} Central Time
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link to="/visit/$token" params={{ token: o.manage_token }}
+          <PageLink kind="visit" token={o.manage_token}
             className="inline-flex min-h-11 items-center rounded-xl border border-input px-4 font-semibold hover:bg-accent">
             Manage visit
-          </Link>
+          </PageLink>
           <button type="button"
             onClick={() => addVisitToCalendar({ name: o.visit_name, start_at: o.new_start_at, end_at: o.new_end_at, mode: o.mode })}
             className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 font-semibold text-primary hover:bg-accent">
@@ -384,15 +401,44 @@ export function MayaChat({
     setEnded(true);
     setIdleStep(0);
     setVoiceSession(false);
+    setResumeVoice(false);
     saveLeadOnClose(messages);
   }, [messages]);
   const restart = () => {
+    clearChatSession();
     setEnded(false);
     setIdleStep(0);
+    setResumeVoice(false);
     setMessages([]);
     setInput("");
     setTimeout(focus, 0);
   };
+
+  // Restore this tab's conversation (sessionStorage) once, then keep it saved.
+  const [restored, setRestored] = useState(false);
+  const [resumeVoice, setResumeVoice] = useState(false);
+  const [page, setPage] = useState<ChatPage | null>(null);
+  useEffect(() => {
+    const s = loadChatSession();
+    if (s) {
+      setMessages(s.messages);
+      setEnded(s.ended);
+      setResumeVoice(s.voice && !s.ended && s.messages.length > 0);
+    }
+    setRestored(true);
+  }, [setMessages]);
+  useEffect(() => {
+    if (!restored || busy) return;
+    if (!ended && messages.length === 0) return clearChatSession();
+    // After an inactivity close only the "Conversation ended" state is kept — no transcript.
+    saveChatSession({ messages: ended ? [] : messages, voice: voiceSession || resumeVoice, ended });
+  }, [restored, busy, messages, ended, voiceSession, resumeVoice]);
+  // 30 minutes without activity: forget the stored conversation.
+  useEffect(() => {
+    if (!restored || messages.length === 0) return;
+    const t = setTimeout(clearChatSession, SESSION_IDLE_MS);
+    return () => clearTimeout(t);
+  }, [restored, messages.length, input]);
 
   // Text-chat inactivity: only after Maya's reply, paused while busy or typing (keystrokes reset it).
   const lastRole = messages.at(-1)?.role;
@@ -436,6 +482,8 @@ export function MayaChat({
       !last.parts.some((p) => p.type === "text" && p.text));
 
   return (
+    <OpenChatPage.Provider value={setPage}>
+    <ChatPagePanel page={page} onClose={() => { setPage(null); setTimeout(focus, 0); }} />
     <div
       ref={wrap}
       className={`surface-tile flex flex-col overflow-hidden rounded-xl border border-border ${embedded ? "h-[min(88vh,940px)] min-h-[600px]" : "h-[min(75vh,720px)]"}`}
@@ -448,21 +496,33 @@ export function MayaChat({
           </p>
           <p className="text-xs text-primary italic">Care that starts the moment you reach out</p>
         </div>
-        <span className="ml-auto inline-flex items-center gap-2 text-sm text-success">
-          <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
-          Online
-        </span>
+        <div className="ml-auto flex flex-col items-end">
+          <span className="inline-flex items-center gap-2 text-sm text-success">
+            <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
+            Online
+          </span>
+          {(messages.length > 0 || ended) && (
+            <button
+              type="button"
+              onClick={restart}
+              disabled={busy || voiceSession}
+              className="min-h-11 text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Clear conversation
+            </button>
+          )}
+        </div>
       </div>
 
       <Conversation className="flex-1">
         <ConversationContent aria-live="polite" className="gap-5 text-base">
-          {voiceSession && (
+          {(voiceSession || resumeVoice) && (
             <div className="flex gap-3">
               <MayaAvatar />
               <p className="pt-1.5 text-[15px]">{VOICE_GREETING}</p>
             </div>
           )}
-          {messages.length === 0 && !voiceSession && (
+          {messages.length === 0 && !voiceSession && !ended && (
             <div className="space-y-4">
               <div className="flex gap-3">
                 <MayaAvatar />
@@ -518,6 +578,17 @@ export function MayaChat({
               </span>
             </div>
           )}
+          {resumeVoice && !voiceSession && !ended && (
+            <div className="pl-12">
+              <Button
+                type="button"
+                className="min-h-12 bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+                onClick={() => setVoiceStartSignal((value) => value + 1)}
+              >
+                Resume talking to Maya
+              </Button>
+            </div>
+          )}
           {ended && <EndedCard onRestart={restart} />}
           {error && (
             <div
@@ -556,6 +627,7 @@ export function MayaChat({
               onSend={sendVoice}
               onEnd={() => {
                 setVoiceSession(false);
+                setResumeVoice(false);
                 setMessages((current) => [
                   ...current,
                   {
@@ -566,8 +638,12 @@ export function MayaChat({
                 ]);
                 focus();
               }}
-              onSessionStart={() => setVoiceSession(true)}
+              onSessionStart={() => {
+                setVoiceSession(true);
+                setResumeVoice(false);
+              }}
               startSignal={voiceStartSignal}
+              skipGreeting={resumeVoice}
               emergency={emergency}
               onIdlePrompt={addMaya}
               onIdleClose={closeChat}
@@ -605,5 +681,6 @@ export function MayaChat({
         {callback && <CallbackForm onDone={() => setCallback(false)} />}
       </div>
     </div>
+    </OpenChatPage.Provider>
   );
 }
