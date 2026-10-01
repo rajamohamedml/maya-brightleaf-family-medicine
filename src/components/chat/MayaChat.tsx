@@ -13,6 +13,8 @@ import {
   Leaf,
   Loader2,
   Phone,
+  Rocket,
+  Square,
 } from "lucide-react";
 import {
   Conversation,
@@ -386,8 +388,16 @@ export function MayaChat({
             <PromptInputSubmit
               status={status}
               disabled={!busy && !input.trim()}
-              className="h-11 w-11 shrink-0 rounded-full bg-cta text-cta-foreground hover:bg-cta/90"
-            />
+              className="h-11 w-11 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {status === "submitted" ? (
+                <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+              ) : status === "streaming" ? (
+                <Square className="size-4" aria-hidden="true" />
+              ) : (
+                <Rocket className="size-5" aria-hidden="true" />
+              )}
+            </PromptInputSubmit>
           </PromptInputFooter>
         </PromptInput>
         <p className="mt-2 text-sm text-muted-foreground">
