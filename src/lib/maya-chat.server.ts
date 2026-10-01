@@ -84,6 +84,22 @@ function emergencyResponse() {
   return createUIMessageStreamResponse({ stream });
 }
 
+/** LLM classifier: does this one message describe a current emergency? */
+async function screenEmergencyText(
+  provider: ReturnType<typeof createOpenAI>,
+  text: string,
+  reasoning: { store: false; forceReasoning: true; reasoningEffort: "low"; reasoningSummary: "auto"; include: string[] },
+) {
+  const r = streamText({
+    model: provider.responses(MODEL),
+    system:
+      "Answer only YES or NO. Does this message describe chest pain, trouble breathing, signs of a stroke, heavy bleeding, or thoughts of self-harm/suicide happening now?",
+    prompt: text,
+    providerOptions: { openai: reasoning },
+  });
+  return (await r.text).trim().toUpperCase().startsWith("YES");
+}
+
 const patientSchema = z.object({
   first_name: z.string().nullable(),
   last_name: z.string().nullable(),
@@ -111,12 +127,10 @@ export async function handleMayaChat(request: Request): Promise<Response> {
   if (!messages.length) return Response.json({ error: "No messages" }, { status: 400 });
 
   // Hard safety gate: a red flag in the newest patient message stops booking before any model call.
+  // After an emergency was already handled, red-flag words in the newest message are screened by
+  // the classifier below instead, so clarifications ("my dad had chest pain last year") pass
+  // while a genuinely new emergency still repeats the 911 message.
   const latestUser = lastUserText(messages);
-  if (keywordEmergency(latestUser)) return emergencyResponse();
-
-  // If an emergency was already handled in this conversation, later check_emergency
-  // calls must screen only the newest words — never the earlier symptom text still
-  // sitting in the history, or the 911 card repeats on every following message.
   const emergencyAlreadyHandled = messages.some((m) =>
     m.role === "assistant" &&
     m.parts.some(
@@ -128,6 +142,7 @@ export async function handleMayaChat(request: Request): Promise<Response> {
           (p as { output?: { emergency?: boolean } }).output?.emergency === true),
     ),
   );
+  if (keywordEmergency(latestUser) && !emergencyAlreadyHandled) return emergencyResponse();
 
   const apiKey = process.env['LOVABLE_API_KEY'];
   if (!apiKey) return Response.json({ error: "AI is not configured" }, { status: 500 });
@@ -139,7 +154,8 @@ export async function handleMayaChat(request: Request): Promise<Response> {
     headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
     fetch: runIdFetch.fetch,
   });
-  const reasoning = {
+  type ReasoningOpts = { store: false; forceReasoning: true; reasoningEffort: "low"; reasoningSummary: "auto"; include: string[] };
+  const reasoning: ReasoningOpts = {
     store: false,
     forceReasoning: true,
     reasoningEffort: "low",
@@ -147,27 +163,33 @@ export async function handleMayaChat(request: Request): Promise<Response> {
     include: ["reasoning.encrypted_content"],
   };
 
+  // After an emergency was already handled, red-flag words in the newest message are
+  // classified against just that message: a current emergency repeats the 911 reply,
+  // a clarification ("my dad had chest pain last year") lets Maya continue helping.
+  let clarifiedNonEmergency = false;
+  if (emergencyAlreadyHandled && keywordEmergency(latestUser)) {
+    if (latestUser.trim() && (await screenEmergencyText(provider, latestUser, reasoning))) {
+      return emergencyResponse();
+    }
+    clarifiedNonEmergency = true;
+  }
+
   const now = await getNow();
   const today = localDateStr(now);
   const base = resolveAppUrl(request);
 
   const tools = {
     check_emergency: tool({
-      description: "Screen the patient's words for emergency red flags (chest pain, trouble breathing, stroke signs, heavy bleeding, thoughts of self-harm). Returns { emergency: boolean }.",
-      inputSchema: z.object({ text: z.string() }),
-      execute: async ({ text }) => {
-        if (keywordEmergency(text)) return { emergency: true };
-        const screenText =
-          emergencyAlreadyHandled && latestUser.trim() ? latestUser : text;
-        const r = streamText({
-          model: provider.responses(MODEL),
-          system:
-            "Answer only YES or NO. Does this message describe chest pain, trouble breathing, signs of a stroke, heavy bleeding, or thoughts of self-harm/suicide happening now?",
-          prompt: screenText,
-          providerOptions: { openai: reasoning },
-        });
-        const out = (await r.text).trim().toUpperCase();
-        return { emergency: out.startsWith("YES") };
+      description:
+        "Screen the patient's LATEST message only for emergency red flags (chest pain, trouble breathing, stroke signs, heavy bleeding, thoughts of self-harm). Never screens earlier conversation history. Returns { emergency: boolean }.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        if (clarifiedNonEmergency) return { emergency: false };
+        // Screen only the newest patient words — earlier symptom text in the
+        // history must never re-trigger the emergency reply on its own.
+        const screenText = latestUser.trim() || "none";
+        if (keywordEmergency(screenText) && !emergencyAlreadyHandled) return { emergency: true };
+        return { emergency: await screenEmergencyText(provider, screenText, reasoning) };
       },
     }),
     lookup_patient: tool({
@@ -293,9 +315,14 @@ export async function handleMayaChat(request: Request): Promise<Response> {
     }),
   };
 
+  // After the first emergency reply, give the model rules for following up without repeating the card.
+  const emergencyFollowUpNote = emergencyAlreadyHandled
+    ? `\nEmergency context: earlier in this conversation you showed the 911/988 message. Use check_emergency to screen ONLY the patient's newest words; it never screens earlier history. If their newest words describe a current emergency, repeat the emergency message once and do not offer times. If they clarify it is not an emergency (e.g. "I'm fine now", "it was my dad last year", "it's not urgent"), acknowledge warmly, remind them once: "If anything changes, please call 911.", then continue helping, including booking a regular visit. If they ask to book while still describing current emergency symptoms, do not offer times; gently say to call 911 now and offer to create a callback task for the clinic for after they've been seen. Never give medical advice.`
+    : "";
+
   const result = streamText({
     model: provider.responses(MODEL),
-    system: MAYA_SYSTEM_PROMPT + "\n" + operationalNotes(today) + voiceNotes(bookingSource === "voice", body?.interruption),
+    system: MAYA_SYSTEM_PROMPT + "\n" + operationalNotes(today) + voiceNotes(bookingSource === "voice", body?.interruption) + emergencyFollowUpNote,
     messages: await convertToModelMessages(messages),
     tools,
     stopWhen: stepCountIs(50),

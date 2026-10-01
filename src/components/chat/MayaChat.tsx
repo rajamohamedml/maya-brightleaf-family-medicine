@@ -53,6 +53,19 @@ function showsEmergency(messages: UIMessage[]) {
   });
 }
 
+/** An emergency card appeared at any point in this conversation. */
+function hadEmergency(messages: UIMessage[]) {
+  return messages.some(
+    (m) =>
+      m.role === "assistant" &&
+      m.parts.some((p) => {
+        if (p.type === "data-emergency") return true;
+        const t = p as { type: string; output?: { emergency?: boolean } };
+        return t.type === "tool-check_emergency" && !!t.output?.emergency;
+      }),
+  );
+}
+
 /** Refresh the conversation's lead (from save_progress) so staff and the lead nudge can follow up. */
 function saveLeadOnClose(messages: UIMessage[]) {
   for (const m of [...messages].reverse()) {
@@ -392,6 +405,7 @@ export function MayaChat({
   const [ended, setEnded] = useState(false);
   const [idleStep, setIdleStep] = useState(0);
   const emergency = showsEmergency(messages);
+  const emergBefore = hadEmergency(messages);
   const addMaya = useCallback(
     (text: string) =>
       setMessages((current) => [...current, { id: `idle-${Date.now()}`, role: "assistant", parts: [{ type: "text", text }] }]),
@@ -496,26 +510,23 @@ export function MayaChat({
           </p>
           <p className="text-xs text-primary italic">Care that starts the moment you reach out</p>
         </div>
-        <div className="ml-auto flex flex-col items-end">
-          <span className="inline-flex items-center gap-2 text-sm text-success">
-            <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
-            Online
-          </span>
-          {(messages.length > 0 || ended) && (
-            <button
-              type="button"
-              onClick={restart}
-              disabled={busy || voiceSession}
-              className="min-h-11 text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Clear conversation
-            </button>
-          )}
-        </div>
+        <span className="ml-auto inline-flex items-center gap-2 text-sm text-success">
+          <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
+          Online
+        </span>
       </div>
 
       <Conversation className="flex-1">
         <ConversationContent aria-live="polite" className="gap-5 text-base">
+          {emergBefore && !emergency && (
+            <div
+              role="status"
+              className="flex items-center gap-2 rounded-lg border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <p>If this is an emergency, call 911 · Mental health crisis: call or text 988</p>
+            </div>
+          )}
           {(voiceSession || resumeVoice) && (
             <div className="flex gap-3">
               <MayaAvatar />
@@ -644,6 +655,9 @@ export function MayaChat({
               }}
               startSignal={voiceStartSignal}
               skipGreeting={resumeVoice}
+              showClear={messages.length > 0 || ended}
+              clearDisabled={busy || voiceSession}
+              onClear={restart}
               emergency={emergency}
               onIdlePrompt={addMaya}
               onIdleClose={closeChat}
