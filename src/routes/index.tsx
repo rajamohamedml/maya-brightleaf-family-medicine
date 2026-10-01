@@ -78,7 +78,7 @@ function Landing() {
   const impact = Route.useLoaderData();
   return (
     <PageShell>
-      <div className="hero-glow -mx-4 px-4 py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_460px] lg:items-start lg:gap-10 lg:px-4 lg:py-12">
+      <div className="hero-glow -mx-4 px-4 py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_540px] lg:items-start lg:gap-10 lg:px-4 lg:py-12">
         <div>
           <p className="text-sm font-semibold text-primary">
             {CLINIC.doctor} · Las Colinas, Irving
