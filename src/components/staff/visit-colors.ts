@@ -7,6 +7,15 @@ export const VISIT_TINT: Record<string, string> = {
   telehealth: "visit-cyan",
 };
 
+export const VISIT_SCHEDULE_COLOR: Record<string, string> = {
+  new_patient: "bg-schedule-new border-schedule-new-border",
+  physical: "bg-schedule-physical border-schedule-physical-border",
+  medicare_awv: "bg-schedule-medicare border-schedule-medicare-border",
+  follow_up: "bg-schedule-follow-up border-schedule-follow-up-border",
+  sick: "bg-schedule-sick border-schedule-sick-border",
+  telehealth: "bg-schedule-telehealth border-schedule-telehealth-border",
+};
+
 export const minToLabel = (m: number) => {
   const h = Math.floor(m / 60);
   const mm = m % 60;
