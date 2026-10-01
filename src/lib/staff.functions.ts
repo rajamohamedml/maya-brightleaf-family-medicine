@@ -4,6 +4,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { addDays, isoDow, localDateStr, localMinutes, zonedToUtc } from "./tz";
+import { getRequest } from "@tanstack/react-start/server";
+import { runAutomations, summaryText } from "./automations.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const uuid = z.string().uuid();
@@ -242,4 +244,86 @@ export const getNavCounts = createServerFn({ method: "POST" })
     await assertStaff(context);
     const { count } = await context.supabase.from("tasks").select("id", { count: "exact", head: true }).eq("status", "open");
     return { inbox: count ?? 0 };
+  });
+
+/* ---------------- Activity: demo clock, impact, feed, outbox ---------------- */
+function requestOrigin() {
+  try {
+    return new URL(getRequest().url).origin;
+  } catch {
+    return "";
+  }
+}
+
+export const getActivity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const sb = context.supabase;
+    const { data: settings } = await sb.from("clinic_settings").select("demo_now").eq("id", 1).maybeSingle();
+    const simulated = !!settings?.demo_now;
+    const now = simulated ? new Date(settings!.demo_now) : new Date();
+    const dayStart = zonedToUtc(localDateStr(now), 0).toISOString();
+    const weekAgo = new Date(now.getTime() - 7 * 86400_000).toISOString();
+    const [runs, feed, outbox] = await Promise.all([
+      sb.from("automation_runs").select("rule,minutes_saved,run_at,details").lte("run_at", now.toISOString()),
+      sb.from("automation_runs").select("id,rule,run_at,details,minutes_saved").order("run_at", { ascending: false }).limit(40),
+      sb.from("messages").select("id,channel,template,to_address,subject,body,rule,sent_at").order("sent_at", { ascending: false }).limit(50),
+    ]);
+    for (const r of [runs, feed, outbox]) if (r.error) throw r.error;
+    const all = runs.data as { rule: string; minutes_saved: number; run_at: string; details: any }[];
+    const sum = (from: string) => all.filter((r) => r.run_at >= from).reduce((t, r) => t + r.minutes_saved, 0);
+    const n = (f: (r: (typeof all)[number]) => boolean) => all.filter(f).length;
+    const booked = n((r) => r.rule === "self_service_booking");
+    const refilled = n((r) => r.rule === "waitlist_refill" && r.details?.action === "accepted");
+    const released = n((r) => r.rule === "confirm_or_release" && r.details?.action === "released");
+    const tasks = n((r) => r.rule === "task_routing");
+    return {
+      now: now.toISOString(),
+      simulated,
+      impact: {
+        minutes_today: sum(dayStart),
+        minutes_week: sum(weekAgo),
+        booked_without_staff: booked + refilled,
+        no_shows_prevented: released + refilled,
+        released,
+        refilled,
+        calls_avoided: booked + refilled + tasks,
+      },
+      feed: feed.data as any[],
+      outbox: outbox.data as any[],
+    };
+  });
+
+export const setDemoClock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ action: z.enum(["plus_hour", "plus_day", "plus_2days", "tomorrow_7am", "real_time", "run_only"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const sb = context.supabase;
+    const { data: s } = await sb.from("clinic_settings").select("demo_now").eq("id", 1).maybeSingle();
+    const cur = s?.demo_now ? new Date(s.demo_now) : new Date();
+    let next: Date | null = cur;
+    const H = 3600_000;
+    if (data.action === "plus_hour") next = new Date(cur.getTime() + H);
+    if (data.action === "plus_day") next = new Date(cur.getTime() + 24 * H);
+    if (data.action === "plus_2days") next = new Date(cur.getTime() + 48 * H);
+    if (data.action === "tomorrow_7am") next = zonedToUtc(addDays(localDateStr(cur), 1), 7 * 60);
+    if (data.action === "real_time") next = null;
+    if (data.action !== "run_only") {
+      const { error } = await sb.from("clinic_settings").update({ demo_now: next ? next.toISOString() : null }).eq("id", 1);
+      if (error) throw error;
+    }
+    const summary = await runAutomations(next ?? new Date(), requestOrigin());
+    return { summary, text: summaryText(summary) };
+  });
+
+export const resetDemo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.rpc("seed_demo");
+    if (error) throw error;
+    return { ok: true };
   });
