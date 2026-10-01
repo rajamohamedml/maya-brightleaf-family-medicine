@@ -14,3 +14,5 @@
 - Public clinic facts for the landing page live in `src/lib/clinic-info.ts` — anon users have no table access.
 - Shared UI lives in `src/components/maya/`; the app uses a token-driven dark clinical theme in `src/styles.css` (cta = coral, primary = teal) so every page inherits one accessible visual system.
 - `/clinic` is a layout route (`clinic.tsx`) with desktop left nav and mobile bottom tabs.
+- All slot math lives in `src/lib/scheduling.server.ts`; every patient action goes through server functions in `src/lib/booking.functions.ts` (zod-validated, service role) — one scheduling brain, and anon users never touch tables. The DB exclusion constraint is the final guard against double booking.
+- Clinic-time math uses `src/lib/tz.ts` (Intl only, America/Chicago) — no extra date library needed.
