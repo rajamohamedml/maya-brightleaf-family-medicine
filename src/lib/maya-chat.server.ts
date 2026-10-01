@@ -310,9 +310,14 @@ export async function handleMayaChat(request: Request): Promise<Response> {
     }),
   };
 
+  // After the first emergency reply, give the model rules for following up without repeating the card.
+  const emergencyFollowUpNote = emergencyAlreadyHandled
+    ? `\nEmergency context: earlier in this conversation you showed the 911/988 message. Use check_emergency to screen ONLY the patient's newest words; it never screens earlier history. If their newest words describe a current emergency, repeat the emergency message once and do not offer times. If they clarify it is not an emergency (e.g. "I'm fine now", "it was my dad last year", "it's not urgent"), acknowledge warmly, remind them once: "If anything changes, please call 911.", then continue helping, including booking a regular visit. If they ask to book while still describing current emergency symptoms, do not offer times; gently say to call 911 now and offer to create a callback task for the clinic for after they've been seen. Never give medical advice.`
+    : "";
+
   const result = streamText({
     model: provider.responses(MODEL),
-    system: MAYA_SYSTEM_PROMPT + "\n" + operationalNotes(today) + voiceNotes(bookingSource === "voice", body?.interruption),
+    system: MAYA_SYSTEM_PROMPT + "\n" + operationalNotes(today) + voiceNotes(bookingSource === "voice", body?.interruption) + emergencyFollowUpNote,
     messages: await convertToModelMessages(messages),
     tools,
     stopWhen: stepCountIs(50),
