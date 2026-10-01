@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { addDays, fmtDay, fmtLongDay, fmtTime, localMinutes, localDateStr, zonedToUtc } from "@/lib/tz";
 import { INSURERS, VISIT_TYPES } from "@/lib/clinic-info";
-import { VISIT_TINT, minToLabel } from "@/components/staff/visit-colors";
+import { VISIT_SCHEDULE_COLOR, minToLabel } from "@/components/staff/visit-colors";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/clinic/schedule")({
@@ -153,8 +153,8 @@ function Schedule() {
                         key={a.id}
                         onClick={() => setOpenId(a.id)}
                         className={cn(
-                          "absolute inset-x-1 overflow-hidden rounded-md border border-border bg-card px-1.5 text-left text-sm leading-tight transition-colors duration-200 hover:border-surface-hover",
-                          VISIT_TINT[a.visit_types?.code] ?? "",
+                          "absolute inset-x-1 overflow-hidden rounded-md border-l-4 border-y border-r px-1.5 text-left text-sm leading-tight text-foreground transition-[filter] duration-200 hover:brightness-110",
+                          VISIT_SCHEDULE_COLOR[a.visit_types?.code] ?? "bg-card border-border",
                           done && "opacity-60",
                         )}
                         style={{ top: ((s - START) / 15) * ROW + 1, height: Math.max(((e - s) / 15) * ROW - 2, ROW - 2) }}
@@ -176,7 +176,7 @@ function Schedule() {
 
       <ul className="mt-3 flex flex-wrap gap-2 text-sm" aria-label="Legend">
         {VISIT_TYPES.map((v) => (
-          <li key={v.code} className={cn("rounded-full border border-border px-2.5 py-1", VISIT_TINT[v.code])}>{v.name}</li>
+          <li key={v.code} className={cn("rounded-full border-l-4 border-y border-r px-2.5 py-1 text-foreground", VISIT_SCHEDULE_COLOR[v.code])}>{v.name}</li>
         ))}
       </ul>
 

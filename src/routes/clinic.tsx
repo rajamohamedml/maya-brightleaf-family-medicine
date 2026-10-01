@@ -26,7 +26,7 @@ const NAV: { to: NavTo; label: string; icon: LucideIcon }[] = [
   { to: "/clinic", label: "Today", icon: Sun },
   { to: "/clinic/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/clinic/inbox", label: "Inbox", icon: Inbox },
-  { to: "/clinic/activity", label: "Activity", icon: Activity },
+  { to: "/clinic/activity", label: "Maya's Activity", icon: Activity },
 ];
 
 function useSignOut() {
