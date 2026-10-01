@@ -679,12 +679,6 @@ export function MayaChat({
                 ]);
                 focus();
               }}
-              onStop={() => {
-                stop();
-                setInput("");
-                setVoiceSession(false);
-                setResumeVoice(false);
-              }}
               onSessionStart={() => {
                 setVoiceSession(true);
                 setResumeVoice(false);

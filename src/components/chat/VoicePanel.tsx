@@ -77,16 +77,13 @@ function splitSentences(text: string): string[] {
 const words = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9' ]/g, " ").split(/\s+/).filter(Boolean);
 
-/** True when what the mic heard closely matches (over 80%) Maya's own sentence coming back through the speakers. */
+/** True when what the mic heard is mostly Maya's own sentence coming back through the speakers. */
 function isEcho(heard: string, spoken: string): boolean {
   const h = words(heard);
   if (!h.length) return true;
   const said = new Set(words(spoken));
-  return h.filter((w) => said.has(w)).length / h.length > 0.8;
+  return h.filter((w) => said.has(w)).length / h.length >= 0.6;
 }
-
-/** Rough spoken length of a sentence at Maya's rate (~130 words/min). */
-const estimateMs = (s: string) => Math.max(800, words(s).length * 460);
 
 function utter(text: string) {
   const u = new SpeechSynthesisUtterance(text);
@@ -105,7 +102,6 @@ export function VoicePanel({
   onSend,
   onEnd,
   onSessionStart,
-  onStop,
   startSignal = 0,
   emergency = false,
   onIdlePrompt,
@@ -119,8 +115,6 @@ export function VoicePanel({
   onSend: (t: string, interruption?: Interruption) => void;
   onEnd: () => void;
   onSessionStart?: () => void;
-  /** Stop button: halt voice and any chat reply immediately. */
-  onStop?: () => void;
   startSignal?: number;
   /** Emergency screen showing: never run the inactivity close. */
   emergency?: boolean;
@@ -178,35 +172,9 @@ export function VoicePanel({
   const speaking = useRef(false);
   // While Maya speaks, the recogniser runs in "monitor" mode and only reacts to a real interruption.
   const monitoring = useRef(false);
+  const resultBase = useRef(0); // ignore recogniser results before this index (echo)
+  const resultCount = useRef(0);
   const pendingInterruption = useRef<Interruption | null>(null);
-  // Current patient turn, built from recogniser results.
-  const turnFinal = useRef("");
-  const turnInterim = useRef("");
-  const turnConfidence = useRef(1);
-  const consumed = useRef(0); // results below this index belong to an earlier turn / echo
-  const appended = useRef(new Set<number>()); // final results already added to the turn
-  const firstNonFinal = useRef(0);
-  const resultLen = useRef(0);
-  const midSpeech = useRef(false);
-  const ptt = useRef(false);
-  const [pttHeld, setPttHeld] = useState(false);
-  // Hidden debug panel (?debug=voice).
-  const debugOn = useRef(false);
-  const [debug, setDebug] = useState<{ on: boolean; rec: string; event: string; interim: string }>({
-    on: false,
-    rec: "off",
-    event: "",
-    interim: "",
-  });
-  const note = (event: string) => {
-    if (!debugOn.current) return;
-    setDebug({
-      on: true,
-      rec: recRef.current ? (midSpeech.current ? "running (speech)" : "running") : "stopped",
-      event: `${event} @ ${new Date().toLocaleTimeString()}`,
-      interim: `${turnFinal.current.trim()} | ${turnInterim.current}`,
-    });
-  };
   // Voice-activity detection (Web Audio energy on an echo-cancelled mic stream).
   const vad = useRef<{ stream: MediaStream; ctx: AudioContext; raf: number; loudSince: number | null; activeAt: number } | null>(null);
   const vadAvailable = useRef(true);
@@ -256,14 +224,16 @@ export function VoicePanel({
       });
   }, []);
 
+  /** Someone has been talking for ~300ms within the last second. */
+  const voiceActive = () => {
+    if (!vad.current) return !vadAvailable.current;
+    return performance.now() - vad.current.activeAt < 1000;
+  };
+
   useEffect(() => {
     ended.current = false;
     setSupported(!!getRecCtor());
     setConsented(localStorage.getItem(CONSENT_KEY) === "1");
-    if (new URLSearchParams(window.location.search).get("debug") === "voice") {
-      debugOn.current = true;
-      setDebug((d) => ({ ...d, on: true }));
-    }
     window.speechSynthesis?.getVoices();
     return () => {
       ended.current = true;
@@ -294,188 +264,137 @@ export function VoicePanel({
     window.speechSynthesis?.cancel();
   }, []);
 
-  /** Start a fresh turn; keep a phrase the patient is in the middle of saying. */
-  const resetTurn = () => {
-    turnFinal.current = "";
-    turnInterim.current = "";
-    turnConfidence.current = 1;
-    consumed.current = firstNonFinal.current;
-  };
-
-  const speakReplyRef = useRef<(text: string, after: () => void, opts?: { monitor?: boolean }) => void>(() => {});
-  const listenRef = useRef<(opts?: { monitor?: boolean }) => void>(() => {});
-
-  /** The patient's turn is over: send what was heard to Maya. Recognition keeps running. */
-  const submitTurn = () => {
-    if (silence.current) clearTimeout(silence.current);
-    silence.current = null;
-    const text = `${turnFinal.current} ${turnInterim.current}`.trim();
-    const hadFinal = !!turnFinal.current.trim();
-    const conf = turnConfidence.current;
-    turnFinal.current = "";
-    turnInterim.current = "";
-    turnConfidence.current = 1;
-    consumed.current = resultLen.current; // anything already shown belongs to this turn
-    note("turn-submitted");
-    if (!text || ended.current) return;
-    monitoring.current = true;
-    if (hadFinal && conf < LOW_CONFIDENCE) {
-      // Unsure what was said: ask again instead of guessing.
-      onTranscript("");
-      speakReplyRef.current(NOT_CAUGHT, () => !ended.current && active.current && listenRef.current(), { monitor: true });
-      return;
-    }
-    awaitingReply.current = true;
-    setState("thinking");
-    const intr = pendingInterruption.current ?? undefined;
-    pendingInterruption.current = null;
-    onSend(text, intr);
-  };
-
-  const armSilence = () => {
-    if (silence.current) clearTimeout(silence.current);
-    if (ptt.current) return; // push-to-talk sends on release
-    const heard = `${turnFinal.current} ${turnInterim.current}`;
-    silence.current = setTimeout(submitTurn, /\d/.test(heard) ? DIGIT_SILENCE_MS : SILENCE_MS);
-  };
-
-  /** Exactly one recogniser per session; it runs continuously until the session ends. */
-  const startRec = () => {
-    const Ctor = getRecCtor();
-    if (!Ctor || ended.current || recRef.current) return;
-    const rec = new Ctor();
-    rec.lang = "en-US";
-    rec.interimResults = true;
-    rec.continuous = true;
-    appended.current = new Set();
-    consumed.current = 0;
-    firstNonFinal.current = 0;
-    resultLen.current = 0;
-    rec.onresult = (e) => {
-      if (recRef.current !== rec) return;
-      const res = e.results;
-      resultLen.current = res.length;
-      let fnf = res.length;
-      for (let i = 0; i < res.length; i++) if (!res[i].isFinal) { fnf = i; break; }
-      firstNonFinal.current = fnf;
-
-      if (monitoring.current) {
-        if (!speaking.current) {
-          if (awaitingReply.current) {
-            // Maya is preparing a reply: this belongs to no turn.
-            consumed.current = fnf;
-            note("result-ignored(thinking)");
-            return;
-          }
-          // Maya has finished (or her end event is late): treat as the patient.
-          monitoring.current = false;
-          setState("listening");
-        } else {
-          let latest = "";
-          for (let i = Math.max(consumed.current, e.resultIndex); i < res.length; i++) latest += res[i][0].transcript;
-          const cur = sentences.current[sentenceIdx.current] ?? "";
-          const prev = sentences.current[sentenceIdx.current - 1] ?? "";
-          if (isEcho(latest, `${prev} ${cur}`)) {
-            consumed.current = Math.max(consumed.current, fnf);
-            note("result-echo");
-            return;
-          }
-          cutSpeech(); // real interruption (barge-in)
-          setState("listening");
-        }
-      }
-
-      // Read every result from resultIndex on: finals join the turn once, non-finals form the interim.
-      let interim = "";
-      const start = Math.min(consumed.current, e.resultIndex);
-      for (let i = start; i < res.length; i++) {
-        if (i < consumed.current) continue;
-        const r = res[i];
-        if (r.isFinal) {
-          if (!appended.current.has(i)) {
-            appended.current.add(i);
-            turnFinal.current += ` ${r[0].transcript}`;
-            if (typeof r[0].confidence === "number" && r[0].confidence > 0)
-              turnConfidence.current = Math.min(turnConfidence.current, r[0].confidence);
-          }
-        } else interim += r[0].transcript;
-      }
-      turnInterim.current = interim;
-      const heard = `${turnFinal.current} ${interim}`.replace(/\s+/g, " ").trim();
-      note("result");
-      if (!heard) return;
-      heardSinceReply.current = true;
-      clearIdle(true); // the patient is talking: cancel the countdown
-      onTranscript(heard);
-      armSilence();
-    };
-    const r = rec as unknown as { onspeechstart: (() => void) | null; onspeechend: (() => void) | null; onstart: (() => void) | null };
-    r.onstart = () => note("start");
-    r.onspeechstart = () => {
-      midSpeech.current = true;
-      note("speechstart");
-      if (monitoring.current) return;
-      heardSinceReply.current = true;
-      clearIdle(true);
-      if (silence.current) clearTimeout(silence.current); // still talking
-    };
-    r.onspeechend = () => {
-      midSpeech.current = false;
-      note("speechend");
-      if (`${turnFinal.current}${turnInterim.current}`.trim()) armSilence();
-    };
-    rec.onerror = (e) => {
-      note(`error:${e.error}`);
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        active.current = false;
-        clearIdle(true);
-        setDenied(true);
-      }
-      // Other errors (no-speech, aborted, network, audio-capture) are followed by "end", which restarts.
-    };
-    rec.onend = () => {
-      if (recRef.current !== rec) return;
-      recRef.current = null;
-      // Keep a phrase cut off by the browser and continue the same turn on the new recogniser.
-      if (turnInterim.current) {
-        turnFinal.current += ` ${turnInterim.current}`;
-        turnInterim.current = "";
-      }
-      const wasMid = midSpeech.current;
-      midSpeech.current = false;
-      note("end");
-      if (active.current && !ended.current) {
-        window.setTimeout(() => active.current && !ended.current && startRec(), wasMid ? 0 : RESTART_MS);
-      } else setState("idle");
-    };
-    recRef.current = rec;
-    try {
-      rec.start();
-    } catch (err) {
-      if ((err as { name?: string })?.name === "InvalidStateError") return; // already started
-      recRef.current = null;
-      if (active.current && !ended.current) window.setTimeout(startRec, RESTART_MS);
-    }
-  };
-
   const listen = useCallback(
     (opts?: { monitor?: boolean }) => {
-      if (!getRecCtor() || ended.current) return;
-      startRec();
-      if (opts?.monitor) {
-        monitoring.current = true;
+      const Ctor = getRecCtor();
+      if (!Ctor || ended.current) return;
+      const monitor = !!opts?.monitor;
+      if (!monitor) cutSpeech();
+      if (recRef.current) {
+        monitoring.current = monitor;
+        resultBase.current = resultCount.current;
+        if (!monitor) {
+          setState("listening");
+          armIdle();
+        }
         return;
       }
-      const wasMonitoring = monitoring.current;
-      cutSpeech();
-      if (wasMonitoring) resetTurn(); // drop Maya's echo, keep a phrase in progress
-      setState("listening");
-      armIdle();
+      const rec = new Ctor();
+      rec.lang = "en-US";
+      rec.interimResults = true;
+      rec.continuous = true;
+      monitoring.current = monitor;
+      resultBase.current = 0;
+      resultCount.current = 0;
+      let finalText = "";
+      let heard = "";
+      let confidence = 1;
+      const arm = () => {
+        if (silence.current) clearTimeout(silence.current);
+        silence.current = setTimeout(() => rec.stop(), /\d/.test(heard) ? DIGIT_SILENCE_MS : SILENCE_MS);
+      };
+      rec.onresult = (e) => {
+        resultCount.current = e.results.length;
+        if (!monitoring.current) {
+          heardSinceReply.current = true; // any result counts as speech
+          clearIdle(true);
+        }
+        if (monitoring.current) {
+          // Barge-in check: real voice energy AND words that aren't Maya's own sentence.
+          let latest = "";
+          for (let i = resultBase.current; i < e.results.length; i++) latest += e.results[i][0].transcript;
+          const i = sentenceIdx.current;
+          const spoken = `${sentences.current[i - 1] ?? ""} ${sentences.current[i] ?? ""} ${sentences.current[i + 1] ?? ""}`;
+          if (isEcho(latest, spoken) || !voiceActive()) return;
+          cutSpeech();
+          resultBase.current = e.results.length - 1; // keep only the patient's words
+          setState("listening");
+        }
+        let interim = "";
+        finalText = "";
+        confidence = 1;
+        for (let i = resultBase.current; i < e.results.length; i++) {
+          const r = e.results[i];
+          if (r.isFinal) {
+            finalText += r[0].transcript;
+            if (typeof r[0].confidence === "number" && r[0].confidence > 0) confidence = Math.min(confidence, r[0].confidence);
+          } else interim += r[0].transcript;
+        }
+        heard = (finalText + interim).trim();
+        if (heard) {
+          heardSinceReply.current = true;
+          clearIdle(true); // the patient is talking: cancel the countdown
+        }
+        onTranscript(heard);
+        if (heard) arm(); // only stop after silence once something was said
+      };
+      (rec as unknown as { onspeechstart: (() => void) | null }).onspeechstart = () => {
+        if (monitoring.current) return;
+        heardSinceReply.current = true;
+        clearIdle(true);
+      };
+      rec.onerror = (e) => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          active.current = false;
+          clearIdle(true);
+          setDenied(true);
+          return;
+        }
+        if (["no-speech", "aborted"].includes(e.error) && active.current && !ended.current) {
+          window.setTimeout(() => {
+            if (!recRef.current && active.current && !ended.current) listen({ monitor: speaking.current || awaitingReply.current });
+          }, RESTART_MS);
+        }
+      };
+      rec.onend = () => {
+        if (silence.current) clearTimeout(silence.current);
+        if (recRef.current !== rec) return;
+        recRef.current = null;
+        if (monitoring.current) {
+          // Keep the microphone live while Maya is speaking or preparing a reply.
+          if (active.current && !ended.current) window.setTimeout(() => active.current && listen({ monitor: true }), RESTART_MS);
+          return;
+        }
+        const text = (finalText || heard).trim();
+        if (text && !ended.current) {
+          if (finalText && confidence < LOW_CONFIDENCE) {
+            // Unsure what was said: ask again instead of guessing.
+            onTranscript("");
+            const token = ++speakToken.current;
+            const u = utter(NOT_CAUGHT);
+            u.onend = u.onerror = () => {
+              if (token === speakToken.current && !ended.current && active.current) listen();
+            };
+            setState("speaking");
+            window.speechSynthesis?.cancel();
+            window.speechSynthesis?.speak(u);
+            return;
+          }
+          awaitingReply.current = true;
+          setState("thinking");
+          const intr = pendingInterruption.current ?? undefined;
+          pendingInterruption.current = null;
+          onSend(text, intr);
+          window.setTimeout(() => active.current && !ended.current && listen({ monitor: true }), RESTART_MS);
+        } else if (active.current && !ended.current) {
+          // Browser ended the session on its own — keep listening until the user taps off.
+          window.setTimeout(() => active.current && !ended.current && listen(), RESTART_MS);
+        } else setState("idle");
+      };
+      recRef.current = rec;
+      try {
+        rec.start();
+        if (!monitor) {
+          setState("listening");
+          armIdle();
+        }
+      } catch {
+        if (active.current && !ended.current) window.setTimeout(() => listen({ monitor }), RESTART_MS);
+        else if (!monitor) setState("idle");
+      }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [cutSpeech, onSend, onTranscript, armIdle, clearIdle],
   );
-  listenRef.current = listen;
 
   /** Speak a reply sentence by sentence, listening for a real interruption the whole time. */
   const speakReply = useCallback(
@@ -495,16 +414,7 @@ export function VoicePanel({
         }
         sentenceIdx.current = i;
         const u = utter(list[i]!);
-        // Chrome sometimes fires onend late or never: move on after the estimated length + 500ms.
-        let done = false;
-        const next = () => {
-          if (done) return;
-          done = true;
-          clearTimeout(fallback);
-          play(i + 1);
-        };
-        const fallback = setTimeout(next, estimateMs(list[i]!) + 500);
-        u.onend = u.onerror = next;
+        u.onend = u.onerror = () => play(i + 1);
         window.speechSynthesis.speak(u);
         startResumeWatch();
       };
@@ -518,7 +428,6 @@ export function VoicePanel({
     },
     [listen, startVad],
   );
-  speakReplyRef.current = speakReply;
 
   const stopListening = () => {
     clearIdle(true);
@@ -598,8 +507,13 @@ export function VoicePanel({
       : "";
     const afterReply = () => {
       if (handsFreeRef.current && active.current && !ended.current) {
-        // The recogniser is already running: switch to normal listening (keeps any phrase in progress).
-        listen();
+        if (recRef.current && monitoring.current) {
+          // The monitor is already listening: switch it to normal listening, dropping the echo heard so far.
+          monitoring.current = false;
+          resultBase.current = resultCount.current;
+          setState("listening");
+          armIdle();
+        } else listen();
       } else {
         recRef.current?.abort();
         recRef.current = null;
@@ -689,84 +603,6 @@ export function VoicePanel({
     speech.speak(utter(VOICE_FAREWELL));
     startResumeWatch();
   };
-
-  /** Stop button: silence Maya, stop listening and cancel any reply in progress, immediately. */
-  const stopAll = () => {
-    clearIdle(true);
-    if (silence.current) clearTimeout(silence.current);
-    ended.current = true;
-    active.current = false;
-    greeted.current = false;
-    speaking.current = false;
-    monitoring.current = false;
-    awaitingReply.current = false;
-    ptt.current = false;
-    setPttHeld(false);
-    pendingInterruption.current = null;
-    turnFinal.current = "";
-    turnInterim.current = "";
-    speakToken.current++;
-    window.speechSynthesis?.cancel();
-    stopVad();
-    const rec = recRef.current;
-    recRef.current = null;
-    rec?.abort();
-    setState("idle");
-    onTranscript("");
-    onStop?.();
-  };
-
-  /** Push-to-talk: everything said while held is one turn, sent on release. */
-  const pttDown = () => {
-    if (ptt.current || state === "thinking") return;
-    if (!active.current) {
-      if (!consented) return setShowNotice(true);
-      ended.current = false;
-      active.current = true;
-      greeted.current = true;
-      onSessionStart?.();
-      startVad();
-    }
-    ptt.current = true;
-    setPttHeld(true);
-    clearIdle(true);
-    if (silence.current) clearTimeout(silence.current);
-    listen();
-    note("ptt-down");
-  };
-  const pttUp = () => {
-    if (!ptt.current) return;
-    ptt.current = false;
-    setPttHeld(false);
-    note("ptt-up");
-    window.setTimeout(submitTurn, 600); // let the last words finalise
-  };
-  const pttRef = useRef({ down: pttDown, up: pttUp });
-  pttRef.current = { down: pttDown, up: pttUp };
-
-  useEffect(() => {
-    if (state === "idle" && !pttHeld) return;
-    const typing = (t: EventTarget | null) => {
-      const el = t as HTMLElement | null;
-      return !!el && (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName) || el.isContentEditable);
-    };
-    const down = (e: KeyboardEvent) => {
-      if (e.code !== "Space" || e.repeat || typing(e.target)) return;
-      e.preventDefault();
-      pttRef.current.down();
-    };
-    const up = (e: KeyboardEvent) => {
-      if (e.code !== "Space" || typing(e.target)) return;
-      e.preventDefault();
-      pttRef.current.up();
-    };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-    };
-  }, [state, pttHeld]);
 
   if (!supported || denied)
     return (
