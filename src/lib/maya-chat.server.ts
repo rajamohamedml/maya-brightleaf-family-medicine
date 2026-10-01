@@ -108,7 +108,7 @@ export async function handleMayaChat(request: Request): Promise<Response> {
         p.type === "data-emergency" ||
         (p.type === "tool-check_emergency" &&
           (p as { state?: string; output?: { emergency?: boolean } }).state === "output-available" &&
-          (p as { output?: { emergency?: boolean } }).output?.emergency === true,
+          (p as { output?: { emergency?: boolean } }).output?.emergency === true),
     ),
   );
 
