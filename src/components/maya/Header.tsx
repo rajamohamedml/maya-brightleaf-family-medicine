@@ -18,7 +18,7 @@ export function Header() {
           </Link>
         )}
         <Link to="/clinic" className="hidden min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-foreground sm:flex">
-          Staff
+          Staff View
         </Link>
         </div>
       </div>
