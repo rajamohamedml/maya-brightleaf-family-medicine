@@ -20,6 +20,7 @@
 - Slot math only in `src/lib/scheduling.server.ts`; patient actions via zod server fns in `src/lib/booking.functions.ts` — one scheduling brain; DB exclusion constraint is the final double-booking guard.
 - Clinic time via `src/lib/tz.ts` (Intl, America/Chicago) — no date library.
 - Staff data via `src/lib/staff.functions.ts` (auth + has_role 'staff') plus staff-only RLS — two guards.
+- /clinic UI access via `useStaffAccess` (`src/lib/staff-access.ts`, session-cached query; checking/allowed/denied) in the /clinic layout only — no flash, one guard for every staff page.
 - Automations: `src/lib/automations.server.ts` (idempotent, simulated time), run by staff demo clock or cron route `/api/public/hooks/run-automations` — no edge functions.
 - Maya chat: route `/api/maya-chat` (`src/lib/maya-chat.server.ts`); tools reuse booking server fns; keyword red-flag gate before any model call — safety server-side.
 - Message links via `resolveAppUrl` (`src/lib/app-url.server.ts`): APP_URL else request public origin — works in preview and published.
