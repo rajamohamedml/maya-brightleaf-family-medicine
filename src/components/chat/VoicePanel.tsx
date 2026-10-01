@@ -10,7 +10,7 @@ type VState = "idle" | "listening" | "thinking" | "speaking";
 const CONSENT_KEY = "maya-voice-consent";
 const SILENCE_MS = 1500;
 export const VOICE_GREETING =
-  "Welcome to Brightleaf Family Medicine. I'm Maya. I can book a visit, answer questions about the clinic, or pass a message to Dr's team. How can I help you today?";
+  "Welcome to Brightleaf Family Medicine. I'm Maya, your anytime front desk assistant. How can I help you today?";
 const BOOKING_CLOSING = "At Brightleaf Family Medicine, your well-being is our sole purpose";
 
 type Rec = {
