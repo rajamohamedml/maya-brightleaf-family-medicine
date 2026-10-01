@@ -47,10 +47,13 @@ export function Header({ onSignOut, email }: { onSignOut?: () => void; email?: s
         <div className="flex min-w-0 items-center gap-3">
           <Link
             to="/"
-            className={`flex min-h-11 items-center gap-2 rounded-lg font-semibold text-foreground ${focus}`}
+            className={`flex min-h-11 flex-col items-start justify-center gap-0 rounded-lg py-1 font-semibold text-foreground ${focus}`}
           >
-            <LeafMark />
-            <span>Brightleaf Family Medicine</span>
+            <span className="flex items-center gap-2">
+              <LeafMark />
+              <span>Brightleaf Family Medicine</span>
+            </span>
+            <span className="text-xs font-normal italic text-primary">Rooted in care, centered on you</span>
           </Link>
         </div>
         <div className="flex items-center gap-1">
