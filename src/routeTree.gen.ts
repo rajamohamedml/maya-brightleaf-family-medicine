@@ -16,6 +16,7 @@ import { Route as ClinicRouteImport } from './routes/clinic'
 import { Route as ClinicIndexRouteImport } from './routes/clinic.index'
 import { Route as ClinicActivityRouteImport } from './routes/clinic.activity'
 import { Route as ClinicInboxRouteImport } from './routes/clinic.inbox'
+import { Route as ClinicLoginRouteImport } from './routes/clinic.login'
 import { Route as ClinicScheduleRouteImport } from './routes/clinic.schedule'
 import { Route as IntakeTokenRouteImport } from './routes/intake.$token'
 import { Route as VisitTokenRouteImport } from './routes/visit.$token'
@@ -56,6 +57,11 @@ const ClinicInboxRoute = ClinicInboxRouteImport.update({
   path: '/inbox',
   getParentRoute: () => ClinicRoute,
 } as any)
+const ClinicLoginRoute = ClinicLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => ClinicRoute,
+} as any)
 const ClinicScheduleRoute = ClinicScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/clinic': typeof ClinicRouteWithChildren
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
+  '/clinic/login': typeof ClinicLoginRoute
   '/clinic/schedule': typeof ClinicScheduleRoute
   '/intake/$token': typeof IntakeTokenRoute
   '/visit/$token': typeof VisitTokenRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
+  '/clinic/login': typeof ClinicLoginRoute
   '/clinic/schedule': typeof ClinicScheduleRoute
   '/intake/$token': typeof IntakeTokenRoute
   '/visit/$token': typeof VisitTokenRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/clinic': typeof ClinicRouteWithChildren
   '/clinic/activity': typeof ClinicActivityRoute
   '/clinic/inbox': typeof ClinicInboxRoute
+  '/clinic/login': typeof ClinicLoginRoute
   '/clinic/schedule': typeof ClinicScheduleRoute
   '/intake/$token': typeof IntakeTokenRoute
   '/visit/$token': typeof VisitTokenRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/clinic'
     | '/clinic/activity'
     | '/clinic/inbox'
+    | '/clinic/login'
     | '/clinic/schedule'
     | '/intake/$token'
     | '/visit/$token'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/clinic/activity'
     | '/clinic/inbox'
+    | '/clinic/login'
     | '/clinic/schedule'
     | '/intake/$token'
     | '/visit/$token'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/clinic'
     | '/clinic/activity'
     | '/clinic/inbox'
+    | '/clinic/login'
     | '/clinic/schedule'
     | '/intake/$token'
     | '/visit/$token'
@@ -218,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClinicInboxRouteImport
       parentRoute: typeof ClinicRoute
     }
+    '/clinic/login': {
+      id: '/clinic/login'
+      path: '/login'
+      fullPath: '/clinic/login'
+      preLoaderRoute: typeof ClinicLoginRouteImport
+      parentRoute: typeof ClinicRoute
+    }
     '/clinic/schedule': {
       id: '/clinic/schedule'
       path: '/schedule'
@@ -252,6 +271,7 @@ declare module '@tanstack/react-router' {
 interface ClinicRouteChildren {
   ClinicActivityRoute: typeof ClinicActivityRoute
   ClinicInboxRoute: typeof ClinicInboxRoute
+  ClinicLoginRoute: typeof ClinicLoginRoute
   ClinicScheduleRoute: typeof ClinicScheduleRoute
   ClinicIndexRoute: typeof ClinicIndexRoute
 }
@@ -259,6 +279,7 @@ interface ClinicRouteChildren {
 const ClinicRouteChildren: ClinicRouteChildren = {
   ClinicActivityRoute: ClinicActivityRoute,
   ClinicInboxRoute: ClinicInboxRoute,
+  ClinicLoginRoute: ClinicLoginRoute,
   ClinicScheduleRoute: ClinicScheduleRoute,
   ClinicIndexRoute: ClinicIndexRoute,
 }
