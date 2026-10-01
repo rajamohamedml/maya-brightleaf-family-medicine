@@ -53,6 +53,19 @@ function showsEmergency(messages: UIMessage[]) {
   });
 }
 
+/** An emergency card appeared at any point in this conversation. */
+function hadEmergency(messages: UIMessage[]) {
+  return messages.some(
+    (m) =>
+      m.role === "assistant" &&
+      m.parts.some((p) => {
+        if (p.type === "data-emergency") return true;
+        const t = p as { type: string; output?: { emergency?: boolean } };
+        return t.type === "tool-check_emergency" && !!t.output?.emergency;
+      }),
+  );
+}
+
 /** Refresh the conversation's lead (from save_progress) so staff and the lead nudge can follow up. */
 function saveLeadOnClose(messages: UIMessage[]) {
   for (const m of [...messages].reverse()) {
