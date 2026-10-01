@@ -228,7 +228,7 @@ function BookPage() {
     setBusy(true);
     try {
       await taskFn({ data: { name: `${np.first_name} ${np.last_name}`.trim() || "Patient", phone: np.phone, kind: "callback", details: "Medicaid — asked for a callback" } });
-      setDone("Thanks! Our team will call you within 1 business day.");
+      setDone("Thanks - we'll reply within 1 business day.");
       toast.success("Callback requested");
     } catch {
       toast.error("Please enter your name and phone number first.");
@@ -560,7 +560,7 @@ function OtherRequest({ headingRef, onBack, onDone }: { headingRef: React.RefObj
     try {
       await taskFn({ data: { name: f.name, phone: f.phone, kind: f.kind as "refill", details: f.details } });
       toast.success("Request sent");
-      onDone("Got it! We'll reply within 1 business day.");
+      onDone("Thanks - we'll reply within 1 business day.");
     } catch {
       setE({ form: "We couldn't send that. Please try again." });
     } finally {
