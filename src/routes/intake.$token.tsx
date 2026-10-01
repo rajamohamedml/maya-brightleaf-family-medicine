@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Field } from "@/components/booking/Field";
+import { Field, type FormErrors } from "@/components/booking/Field";
 import { manageAppointment, submitIntake } from "@/lib/booking.functions";
 import { fmtSlot } from "@/lib/tz";
 
@@ -36,13 +36,13 @@ function IntakePage() {
   const submit = useServerFn(submitIntake);
   const q = useQuery({ queryKey: ["visit", token], queryFn: () => view({ data: { token, action: "view" } }) });
   const [f, setF] = useState({ address: "", emergency_name: "", emergency_phone: "", pharmacy: "", medications: "", medications_none: false, allergies: "", allergies_none: false, consent: false });
-  const [e, setE] = useState<Record<string, string>>({});
+  const [e, setE] = useState<FormErrors>({});
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
   async function onSubmit(ev: React.FormEvent) {
     ev.preventDefault();
-    const errs: Record<string, string> = {};
+    const errs: FormErrors = {};
     if (f.address.trim().length < 5) errs.address = "Enter your home address";
     if (f.emergency_name.trim().length < 2) errs.emergency_name = "Enter a contact name";
     if (f.emergency_phone.replace(/\D/g, "").length < 10) errs.emergency_phone = "Enter a 10-digit phone number";
@@ -55,7 +55,7 @@ function IntakePage() {
     setBusy(true);
     try {
       const res = await submit({ data: { token, data: { ...f, consent: true } } });
-      if ("error" in res) return toast.error(res.message);
+      if ("error" in res) { toast.error(res.message); return; }
       setSent(true);
       toast.success("Intake form sent");
     } catch {

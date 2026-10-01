@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Field, SelectField } from "@/components/booking/Field";
+import { Field, SelectField, type FormErrors } from "@/components/booking/Field";
 import { Segmented, SlotPicker, WindowToggle, type PickedSlot, type SlotWindow } from "@/components/booking/SlotPicker";
 import { VisitCard, addVisitToCalendar, type VisitSummary } from "@/components/booking/VisitCard";
 import {
@@ -84,7 +84,7 @@ function BookPage() {
   const [ret, setRet] = useState({ dob: "", phone: "" });
   const [welcome, setWelcome] = useState<string | null>(null);
   const [np, setNp] = useState({ first_name: "", last_name: "", dob: "", phone: "", email: "", insurer: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [visit, setVisit] = useState<Resolved | null>(null);
   const [mode, setMode] = useState<Mode>("in_person");
   const [win, setWin] = useState<SlotWindow>("any");
@@ -138,13 +138,13 @@ function BookPage() {
       return false;
     }
     setVisit(res);
-    setMode(res.modes[0]);
+    setMode(res.modes[0] ?? "in_person");
     setSlot(null);
     return true;
   }
 
   async function submitPatient() {
-    const e: Record<string, string> = {};
+    const e: FormErrors = {};
     if (kind === "returning") {
       if (!validDob(ret.dob)) e.dob = "Enter your date of birth";
       if (digits(ret.phone).length < 10) e.phone = "Enter your 10-digit phone number";
@@ -242,7 +242,7 @@ function BookPage() {
     setBusy(true);
     try {
       const res = await waitFn({ data: { patient: patientPayload(), visit_type_codes: [visit.code], window: win } });
-      if ("error" in res) return toast.error(res.message);
+      if ("error" in res) { toast.error(res.message); return; }
       setDone("You're on the waitlist. We'll text you if an earlier time opens up.");
       toast.success("Added to the waitlist");
     } finally {
@@ -547,10 +547,10 @@ function SummaryCard({ items }: { items: [string, string | null | undefined][] }
 function OtherRequest({ headingRef, onBack, onDone }: { headingRef: React.RefObject<HTMLHeadingElement | null>; onBack: () => void; onDone: (m: string) => void }) {
   const taskFn = useServerFn(createTask);
   const [f, setF] = useState({ name: "", phone: "", kind: "", details: "" });
-  const [e, setE] = useState<Record<string, string>>({});
+  const [e, setE] = useState<FormErrors>({});
   const [busy, setBusy] = useState(false);
   async function submit() {
-    const errs: Record<string, string> = {};
+    const errs: FormErrors = {};
     if (f.name.trim().length < 2) errs.name = "Enter your name";
     if (digits(f.phone).length < 10) errs.phone = "Enter your 10-digit phone number";
     if (!f.kind) errs.kind = "Choose what you need";

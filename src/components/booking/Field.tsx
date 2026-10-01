@@ -2,13 +2,18 @@ import type { InputHTMLAttributes, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+type ErrKey =
+  | "dob" | "phone" | "first_name" | "last_name" | "email" | "insurer" | "form" | "consent"
+  | "name" | "kind" | "address" | "emergency_name" | "emergency_phone" | "pharmacy" | "medications" | "allergies";
+export type FormErrors = { [K in ErrKey]?: string | undefined };
+
 export function Field({
   id,
   label,
   error,
   hint,
   ...props
-}: { id: string; label: string; error?: string; hint?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
+}: { id: string; label: string; error?: string | undefined; hint?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id} className="text-base">{label}</Label>
@@ -43,7 +48,7 @@ export function SelectField({
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
-  error?: string;
+  error?: string | undefined;
   placeholder?: string;
 }) {
   return (
