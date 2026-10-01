@@ -33,7 +33,7 @@ type Msg = {
 };
 
 export async function sendMessage(m: Msg, now: Date) {
-  await db().from("messages").insert({ ...m, sent_at: now.toISOString() });
+  await db().from("messages").insert({ ...m, subject: m.subject ?? null, sent_at: now.toISOString() });
 }
 
 export async function logRun(rule: string, minutes: number, now: Date, details: Record<string, unknown>) {

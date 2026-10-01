@@ -16,6 +16,7 @@ import {
 } from "./scheduling.server";
 import { visitCodeForReason, WHAT_TO_BRING } from "./booking-rules";
 import { addDays, fmtSlot, localDateStr } from "./tz";
+import { refillSlot } from "./automations.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 const phone = z.string().trim().refine((p) => p.replace(/\D/g, "").length >= 10, "Enter a 10-digit phone number");
