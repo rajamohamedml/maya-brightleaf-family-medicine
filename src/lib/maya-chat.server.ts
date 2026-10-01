@@ -85,7 +85,11 @@ function emergencyResponse() {
 }
 
 /** LLM classifier: does this one message describe a current emergency? */
-async function screenEmergencyText(provider: ReturnType<typeof createOpenAI>, text: string, reasoning: unknown) {
+async function screenEmergencyText(
+  provider: ReturnType<typeof createOpenAI>,
+  text: string,
+  reasoning: { store: false; forceReasoning: true; reasoningEffort: "low"; reasoningSummary: "auto"; include: string[] },
+) {
   const r = streamText({
     model: provider.responses(MODEL),
     system:
