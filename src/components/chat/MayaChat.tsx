@@ -482,6 +482,8 @@ export function MayaChat({
       !last.parts.some((p) => p.type === "text" && p.text));
 
   return (
+    <OpenChatPage.Provider value={setPage}>
+    <ChatPagePanel page={page} onClose={() => { setPage(null); setTimeout(focus, 0); }} />
     <div
       ref={wrap}
       className={`surface-tile flex flex-col overflow-hidden rounded-xl border border-border ${embedded ? "h-[min(88vh,940px)] min-h-[600px]" : "h-[min(75vh,720px)]"}`}
@@ -494,21 +496,33 @@ export function MayaChat({
           </p>
           <p className="text-xs text-primary italic">Care that starts the moment you reach out</p>
         </div>
-        <span className="ml-auto inline-flex items-center gap-2 text-sm text-success">
-          <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
-          Online
-        </span>
+        <div className="ml-auto flex flex-col items-end">
+          <span className="inline-flex items-center gap-2 text-sm text-success">
+            <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
+            Online
+          </span>
+          {(messages.length > 0 || ended) && (
+            <button
+              type="button"
+              onClick={restart}
+              disabled={busy || voiceSession}
+              className="min-h-11 text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Clear conversation
+            </button>
+          )}
+        </div>
       </div>
 
       <Conversation className="flex-1">
         <ConversationContent aria-live="polite" className="gap-5 text-base">
-          {voiceSession && (
+          {(voiceSession || resumeVoice) && (
             <div className="flex gap-3">
               <MayaAvatar />
               <p className="pt-1.5 text-[15px]">{VOICE_GREETING}</p>
             </div>
           )}
-          {messages.length === 0 && !voiceSession && (
+          {messages.length === 0 && !voiceSession && !ended && (
             <div className="space-y-4">
               <div className="flex gap-3">
                 <MayaAvatar />
