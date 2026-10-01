@@ -518,6 +518,15 @@ export function MayaChat({
 
       <Conversation className="flex-1">
         <ConversationContent aria-live="polite" className="gap-5 text-base">
+          {emergBefore && !emergency && (
+            <div
+              role="status"
+              className="flex items-center gap-2 rounded-lg border border-destructive/60 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <p>If this is an emergency, call 911 · Mental health crisis: call or text 988</p>
+            </div>
+          )}
           {(voiceSession || resumeVoice) && (
             <div className="flex gap-3">
               <MayaAvatar />
