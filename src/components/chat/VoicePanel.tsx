@@ -687,6 +687,32 @@ export function VoicePanel({
     startResumeWatch();
   };
 
+  /** Stop button: silence Maya, stop listening and cancel any reply in progress, immediately. */
+  const stopAll = () => {
+    clearIdle(true);
+    if (silence.current) clearTimeout(silence.current);
+    ended.current = true;
+    active.current = false;
+    greeted.current = false;
+    speaking.current = false;
+    monitoring.current = false;
+    awaitingReply.current = false;
+    ptt.current = false;
+    setPttHeld(false);
+    pendingInterruption.current = null;
+    turnFinal.current = "";
+    turnInterim.current = "";
+    speakToken.current++;
+    window.speechSynthesis?.cancel();
+    stopVad();
+    const rec = recRef.current;
+    recRef.current = null;
+    rec?.abort();
+    setState("idle");
+    onTranscript("");
+    onStop?.();
+  };
+
   /** Push-to-talk: everything said while held is one turn, sent on release. */
   const pttDown = () => {
     if (ptt.current || state === "thinking") return;
