@@ -28,7 +28,7 @@ export default function FeedbackPage() {
 
       {sent ? (
         <div className="mt-8 flex items-start gap-3 rounded-xl border border-border bg-card p-5" role="status">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-status-confirmed" aria-hidden="true" />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />
           <div>
             <p className="font-semibold">Thank you - your feedback is noted.</p>
             <p className="mt-1 text-muted-foreground">This demo doesn't send anything anywhere, but we appreciate you trying it.</p>
