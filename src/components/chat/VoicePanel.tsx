@@ -105,6 +105,7 @@ export function VoicePanel({
   onSend,
   onEnd,
   onSessionStart,
+  onStop,
   startSignal = 0,
   emergency = false,
   onIdlePrompt,
@@ -118,6 +119,8 @@ export function VoicePanel({
   onSend: (t: string, interruption?: Interruption) => void;
   onEnd: () => void;
   onSessionStart?: () => void;
+  /** Stop button: halt voice and any chat reply immediately. */
+  onStop?: () => void;
   startSignal?: number;
   /** Emergency screen showing: never run the inactivity close. */
   emergency?: boolean;
