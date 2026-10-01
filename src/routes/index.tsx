@@ -115,7 +115,25 @@ function Landing() {
         </div>
         <div className="mt-10 min-w-0 lg:col-start-1 lg:row-start-2 lg:mt-0">
 
-      <section aria-labelledby="how" className="mb-10">
+      <section
+        aria-labelledby="ba"
+        className="surface-tile rounded-xl border border-border p-5 transition-colors duration-200 hover:border-surface-hover sm:p-6"
+      >
+        <h2 id="ba" className="text-xl font-semibold">
+          Before vs. after Maya
+        </h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="before-tile rounded-lg border border-border p-4">
+            <List title="Before" items={BEFORE} icon={X} iconCls="text-destructive" />
+          </div>
+          <div className="after-tile rounded-lg border border-border p-4">
+            <List title="After" items={AFTER} icon={Check} iconCls="text-success" />
+          </div>
+        </div>
+        <p className="mt-4 text-sm text-muted-foreground">Hypothetical client figures.</p>
+      </section>
+
+      <section aria-labelledby="how" className="mt-10">
         <h2 id="how" className="text-xl font-semibold">How Maya works</h2>
         <ol className="mt-4 grid gap-3 sm:grid-cols-3">
           {[
@@ -134,23 +152,6 @@ function Landing() {
         </ol>
       </section>
 
-      <section
-        aria-labelledby="ba"
-        className="surface-tile rounded-xl border border-border p-5 transition-colors duration-200 hover:border-surface-hover sm:p-6"
-      >
-        <h2 id="ba" className="text-xl font-semibold">
-          Before vs. after Maya
-        </h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="before-tile rounded-lg border border-border p-4">
-            <List title="Before" items={BEFORE} icon={X} iconCls="text-destructive" />
-          </div>
-          <div className="after-tile rounded-lg border border-border p-4">
-            <List title="After" items={AFTER} icon={Check} iconCls="text-success" />
-          </div>
-        </div>
-        <p className="mt-4 text-sm text-muted-foreground">Hypothetical client figures.</p>
-      </section>
 
       <section aria-labelledby="vt" className="mt-10">
         <h2 id="vt" className="text-xl font-semibold">
