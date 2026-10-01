@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
-import { pickVoice, toSpeech } from "./speech-text";
+import { pickVoice, toSpeech, waitForVoices } from "./speech-text";
 
 type VState = "idle" | "listening" | "thinking" | "speaking";
 const CONSENT_KEY = "maya-voice-consent";
