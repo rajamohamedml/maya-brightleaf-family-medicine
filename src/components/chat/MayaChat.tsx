@@ -291,8 +291,8 @@ export function MayaChat({
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <MayaAvatar />
         <div>
-          <p className="font-semibold">
-            Maya - Anytime Front Desk Assistant: Brightleaf Family Medicine
+          <p className="text-base font-medium">
+            Meet Maya - Your Anytime Front Desk Assistant
           </p>
           <p className="text-xs text-primary">Your well-being is our sole purpose</p>
         </div>
