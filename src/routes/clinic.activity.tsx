@@ -164,10 +164,11 @@ function ActivityPage() {
                     <li><span className="font-semibold">+1 day</span> — jump ahead one day, then run the checks. Reminders and reconfirm requests go out.</li>
                     <li><span className="font-semibold">+2 days</span> — jump ahead two days, then run the checks. Unconfirmed visits get released and offered to the waitlist.</li>
                     <li><span className="font-semibold">7:00am tomorrow</span> — jump to tomorrow at 7am, when same-day sick slots open.</li>
-                    <li><span className="font-semibold">Reset to real time</span> — stop simulating and use today's real date and time.</li>
+                    <li><span className="font-semibold">Reset to real time</span> — stop simulating and use today's real date and time. Your data stays as it is.</li>
+                    <li><span className="font-semibold">Reset demo data (bottom of this page)</span> — start the demo over: restores the fictional patients, visits and waitlist, clears the outbox and activity, and sets the clock back to Monday 7:30am. Staff logins are kept.</li>
                   </ul>
                   <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
-                    Tip: cancel a visit in Schedule, then press +1 day twice, and watch What Maya did and the Outbox.
+                    Tip: press Reset demo data, cancel a visit in Schedule, then press +1 day twice, and watch What Maya did and the Outbox.
                   </p>
                 </PopoverContent>
               </Popover>
@@ -255,10 +256,24 @@ function ActivityPage() {
       <section className="rounded-xl border border-dashed border-border p-4">
         <h2 className="font-semibold">Demo data</h2>
         <p className="text-sm text-muted-foreground">Rebuild the fictional demo data and set the clock back to Monday 7:30am. Staff logins are kept.</p>
-        <Button variant="outline" className="mt-3 min-h-11" disabled={resetM.isPending} onClick={() => confirm("Rebuild all demo data? Test bookings will be removed.") && resetM.mutate()}>
-          {resetM.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RotateCcw className="h-4 w-4" aria-hidden="true" />}
-          Reset demo data
-        </Button>
+        <div className="mt-3 flex items-center gap-2">
+          <Button variant="outline" className="min-h-11" disabled={resetM.isPending} onClick={() => confirm("Rebuild all demo data? Test bookings will be removed.") && resetM.mutate()}>
+            {resetM.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RotateCcw className="h-4 w-4" aria-hidden="true" />}
+            Reset demo data
+          </Button>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" className="min-h-11 min-w-11" aria-label="What resetting demo data does">
+                  <Info className="h-5 w-5" aria-hidden="true" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-64 text-center">
+                Starts the demo over: restores fictional data, clears the outbox and activity, sets the clock to Monday 7:30am. Staff logins are kept.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </section>
     </div>
   );
