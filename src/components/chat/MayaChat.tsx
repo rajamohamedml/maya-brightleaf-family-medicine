@@ -13,7 +13,7 @@ import {
   Leaf,
   Loader2,
   Phone,
-  Rocket,
+  Send,
   Square,
 } from "lucide-react";
 import {
@@ -395,7 +395,7 @@ export function MayaChat({
               ) : status === "streaming" ? (
                 <Square className="size-4" aria-hidden="true" />
               ) : (
-                <Rocket className="size-5" aria-hidden="true" />
+                <Send className="size-5" aria-hidden="true" />
               )}
             </PromptInputSubmit>
           </PromptInputFooter>
