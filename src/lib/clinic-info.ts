@@ -26,4 +26,4 @@ export const HOURS = [
 ];
 
 // Voice ("Talk to Maya") ships in a later step; hidden everywhere until configured.
-export const VOICE_ENABLED = false;
+export const VOICE_ENABLED = true;

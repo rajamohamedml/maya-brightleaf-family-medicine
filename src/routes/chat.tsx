@@ -22,10 +22,11 @@ export const Route = createFileRoute("/chat")({
 });
 
 function ChatPage() {
+  const { voice } = Route.useSearch();
   return (
     <PageShell title="Chat with Maya" intro="Book a visit, ask a question, or send a message to the team.">
       <Suspense fallback={<LoadingSkeleton rows={6} />}>
-        <MayaChat />
+        <MayaChat voice={voice === 1} />
       </Suspense>
     </PageShell>
   );

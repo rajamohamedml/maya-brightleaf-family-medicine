@@ -89,8 +89,9 @@ function safe<T>(fn: () => Promise<T>) {
 }
 
 export async function handleMayaChat(request: Request): Promise<Response> {
-  const body = (await request.json().catch(() => null)) as { messages?: UIMessage[] } | null;
+  const body = (await request.json().catch(() => null)) as { messages?: UIMessage[]; channel?: string } | null;
   const messages = Array.isArray(body?.messages) ? body!.messages.slice(-40) : [];
+  const bookingSource = body?.channel === "voice" ? "voice" : "chat";
   if (!messages.length) return Response.json({ error: "No messages" }, { status: 400 });
 
   // Hard safety gate: a red flag in the newest patient message stops booking before any model call.
@@ -187,7 +188,7 @@ export async function handleMayaChat(request: Request): Promise<Response> {
       execute: ({ patient, lead_id, ...d }) =>
         safe(async () => {
           const r = await bookAppointment({
-            data: { ...d, patient: clean(patient), source: "chat", ...(lead_id ? { lead_id } : {}) },
+            data: { ...d, patient: clean(patient), source: bookingSource, ...(lead_id ? { lead_id } : {}) },
           });
           if (!("ok" in r)) return r;
           return {
