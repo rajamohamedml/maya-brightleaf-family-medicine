@@ -1,8 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Building2, CalendarCheck, Check, Clock, MapPin, MessageCircle, Mic, ShieldCheck, Video, X } from "lucide-react";
+import { lazy, Suspense } from "react";
+import { Building2, CalendarCheck, Check, Clock, MapPin, ShieldCheck, Video, X } from "lucide-react";
 import { PageShell } from "@/components/maya/PageShell";
-import { CLINIC, HOURS, INSURERS, VISIT_TYPES, VOICE_ENABLED } from "@/lib/clinic-info";
+import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
+import { CLINIC, HOURS, INSURERS, VISIT_TYPES } from "@/lib/clinic-info";
 import { getPublicImpact } from "@/lib/booking.functions";
+
+const MayaChat = lazy(() => import("@/components/chat/MayaChat").then((m) => ({ default: m.MayaChat })));
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,24 +33,25 @@ function Landing() {
   const impact = Route.useLoaderData();
   return (
     <PageShell>
-      <section className="hero-glow -mx-4 px-4 py-8 sm:py-14">
-        <p className="text-sm font-semibold text-primary">{CLINIC.doctor} · Las Colinas, Irving</p>
-        <h1 className="mt-2 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">Get in with Dr. Rahman — no hold music.</h1>
-        <p className="mt-3 text-lg text-muted-foreground">Maya books, confirms and reminds, 24/7.</p>
-        <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm">
-          <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
-          <span><span className="font-semibold">{impact.hours}</span> staff hours saved this week</span>
-        </p>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Link to="/book" className={`${btn} bg-cta text-cta-foreground hover:bg-cta/90`}>
-            <CalendarCheck className="h-5 w-5" aria-hidden="true" /> Book a visit
-          </Link>
-          <Link to="/chat" className={`${btn} border border-input bg-card hover:border-surface-hover hover:bg-accent`}>
-            <MessageCircle className="h-5 w-5" aria-hidden="true" /> Chat with Maya
-          </Link>
-          {VOICE_ENABLED && <Link to="/chat" search={{ voice: 1 }} className={`${btn} text-primary hover:bg-accent`}>
-            <Mic className="h-5 w-5" aria-hidden="true" /> Talk to Maya
-          </Link>}
+      <section className="hero-glow -mx-4 grid gap-8 px-4 py-8 lg:grid-cols-[minmax(0,0.88fr)_minmax(420px,1.12fr)] lg:items-center lg:py-12">
+        <div>
+          <p className="text-sm font-semibold text-primary">{CLINIC.doctor} · Las Colinas, Irving</p>
+          <h1 className="mt-2 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">Get in with Dr. Rahman — no hold music.</h1>
+          <p className="mt-3 text-lg text-muted-foreground">Maya books, confirms and reminds, 24/7.</p>
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm">
+            <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
+            <span><span className="font-semibold">{impact.hours}</span> staff hours saved this week</span>
+          </p>
+          <div className="mt-6">
+            <Link to="/book" className={`${btn} bg-cta text-cta-foreground hover:bg-cta/90`}>
+              <CalendarCheck className="h-5 w-5" aria-hidden="true" /> Book a visit
+            </Link>
+          </div>
+        </div>
+        <div className="min-w-0" aria-label="Chat with Maya">
+          <Suspense fallback={<LoadingSkeleton rows={6} />}>
+            <MayaChat embedded />
+          </Suspense>
         </div>
       </section>
 

@@ -51,6 +51,7 @@ export function VoicePanel({
   const [consented, setConsented] = useState(false);
   const [state, setState] = useState<VState>("idle");
   const [handsFree, setHandsFree] = useState(true);
+  const [showNotice, setShowNotice] = useState(false);
   const recRef = useRef<Rec | null>(null);
   const silence = useRef<ReturnType<typeof setTimeout> | null>(null);
   const awaitingReply = useRef(false);
@@ -151,6 +152,10 @@ export function VoicePanel({
   }, [busy, messages, listen]);
 
   const onMic = () => {
+    if (!consented) {
+      setShowNotice(true);
+      return;
+    }
     if (state === "listening") return stopListening();
     if (state === "thinking") return;
     listen(); // also barges in while Maya is speaking
@@ -166,55 +171,41 @@ export function VoicePanel({
     onEnd();
   };
 
-  const EndBtn = (
-    <Button type="button" variant="outline" onClick={end} className="min-h-11 gap-2">
-      <PhoneOff className="h-4 w-4" aria-hidden="true" /> End
-    </Button>
-  );
-
   if (!supported || denied)
     return (
-      <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/50 bg-warning/10 p-4">
-        <p className="flex items-center gap-2">
-          <MicOff className="h-5 w-5 text-warning" aria-hidden="true" />
-          {denied ? "Microphone access was blocked. " : ""}Voice works best in Chrome, Edge or Safari. You can keep typing below.
-        </p>
-        {EndBtn}
-      </div>
-    );
-
-  if (!consented)
-    return (
-      <div className="rounded-xl border border-primary/40 bg-primary/10 p-4">
-        <p>Maya will use your microphone. Audio stays in your browser and isn't stored. Demo only - don't share real health information.</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button
-            type="button"
-            onClick={() => {
-              localStorage.setItem(CONSENT_KEY, "1");
-              setConsented(true);
-            }}
-            className="min-h-11 bg-cta text-cta-foreground hover:bg-cta/90"
-          >
-            <Mic className="h-4 w-4" aria-hidden="true" /> Start talking
-          </Button>
-          {EndBtn}
-        </div>
-      </div>
+      <span role="status" className="flex min-w-0 items-center gap-2 text-sm text-warning">
+        <MicOff className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="hidden sm:inline">{denied ? "Microphone blocked. " : ""}Voice works best in Chrome, Edge or Safari.</span>
+      </span>
     );
 
   const label = { idle: "Tap the mic to talk", listening: "Listening…", thinking: "Maya is thinking…", speaking: "Maya is speaking — tap to interrupt" }[state];
 
   return (
-    <div className="flex flex-col items-center gap-3 py-2">
-      <button
+    <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
+      <span aria-live="polite" className="mr-auto truncate text-xs text-muted-foreground">
+        {state === "idle" ? "" : label}
+      </span>
+      {state !== "idle" && (
+        <label className="hidden min-h-11 cursor-pointer items-center gap-1.5 px-2 text-xs sm:flex">
+          <input type="checkbox" checked={handsFree} onChange={(e) => setHandsFree(e.target.checked)} className="h-4 w-4 accent-primary" />
+          Hands-free
+        </label>
+      )}
+      {state !== "idle" && (
+        <Button type="button" size="icon" variant="ghost" onClick={end} aria-label="End voice conversation" title="End voice conversation">
+          <PhoneOff className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      )}
+      <Button
         type="button"
         onClick={onMic}
         disabled={state === "thinking"}
         aria-label={state === "listening" ? "Stop listening" : state === "speaking" ? "Interrupt Maya and talk" : "Start talking"}
-        className={`relative flex h-20 w-20 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-70 ${
-          state === "listening" ? "bg-primary text-primary-foreground" : "bg-cta text-cta-foreground hover:bg-cta/90"
-        }`}
+        title={label}
+        size="icon"
+        variant="ghost"
+        className={`relative shrink-0 rounded-full ${state === "listening" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-primary"}`}
       >
         {state === "listening" && <span className="absolute inset-0 animate-ping rounded-full ring-4 ring-primary motion-reduce:animate-none" aria-hidden="true" />}
         {state === "thinking" ? (
@@ -230,17 +221,32 @@ export function VoicePanel({
             ))}
           </span>
         ) : (
-          <Mic className="h-8 w-8" aria-hidden="true" />
+          <Mic className="h-5 w-5" aria-hidden="true" />
         )}
-      </button>
-      <p aria-live="polite" className="text-sm text-muted-foreground">{label}</p>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <label className="flex min-h-11 cursor-pointer items-center gap-2 px-2 text-sm">
-          <input type="checkbox" checked={handsFree} onChange={(e) => setHandsFree(e.target.checked)} className="h-5 w-5 accent-primary" />
-          Hands-free
-        </label>
-        {EndBtn}
-      </div>
+      </Button>
+      {showNotice && (
+        <div role="dialog" aria-modal="true" aria-labelledby="voice-notice-title" className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-primary/40 bg-popover p-5 shadow-xl">
+            <p id="voice-notice-title" className="font-semibold">Use voice with Maya</p>
+            <p className="mt-2 text-sm text-muted-foreground">Maya will use your microphone. Audio stays in your browser and isn't stored. Demo only - don't share real health information.</p>
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setShowNotice(false)}>Not now</Button>
+              <Button
+                type="button"
+                variant="cta"
+                onClick={() => {
+                  localStorage.setItem(CONSENT_KEY, "1");
+                  setConsented(true);
+                  setShowNotice(false);
+                  window.setTimeout(listen, 0);
+                }}
+              >
+                <Mic className="h-4 w-4" aria-hidden="true" /> Start talking
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

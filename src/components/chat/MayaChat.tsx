@@ -2,11 +2,9 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, CalendarPlus, CheckCircle2, ClipboardCheck, ClipboardList, Leaf, Loader2, Mic, Phone } from "lucide-react";
-
-const VoicePanel = lazy(() => import("./VoicePanel").then((m) => ({ default: m.VoicePanel })));
+import { AlertTriangle, CalendarPlus, CheckCircle2, ClipboardCheck, ClipboardList, Leaf, Loader2, Phone } from "lucide-react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { PromptInput, PromptInputFooter, PromptInputSubmit, PromptInputTextarea } from "@/components/ai-elements/prompt-input";
@@ -16,6 +14,7 @@ import { addVisitToCalendar } from "@/components/booking/VisitCard";
 import { createTask } from "@/lib/booking.functions";
 import { EMERGENCY_MESSAGE } from "@/lib/booking-rules";
 import { fmtLongDay, fmtTime } from "@/lib/tz";
+import { VoicePanel } from "./VoicePanel";
 
 const STARTERS = ["I'm new and need a physical", "I'm sick today", "Reschedule my visit", "Request a refill", "Do you take Aetna?"];
 
@@ -158,7 +157,7 @@ function CallbackForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-export function MayaChat({ voice = false }: { voice?: boolean }) {
+export function MayaChat({ voice = false, embedded = false }: { voice?: boolean; embedded?: boolean }) {
   const { messages, sendMessage, status, error, stop } = useChat({
     transport: new DefaultChatTransport({ api: "/api/maya-chat" }),
   });
@@ -167,8 +166,6 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
   const busy = status === "submitted" || status === "streaming";
   const wrap = useRef<HTMLDivElement>(null);
 
-  const [voiceOn, setVoiceOn] = useState(voice);
-  useEffect(() => setVoiceOn(voice), [voice]);
   const sendVoice = useCallback((text: string) => {
     sendMessage({ text }, { body: { channel: "voice" } });
     setInput("");
@@ -176,8 +173,8 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
 
   const focus = () => wrap.current?.querySelector("textarea")?.focus();
   useEffect(() => {
-    if (!busy && !voiceOn) focus();
-  }, [busy, voiceOn]);
+    if (!busy) focus();
+  }, [busy]);
 
   const send = (text: string) => {
     if (!text.trim() || busy) return;
@@ -189,18 +186,14 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
   const waiting = status === "submitted" || (status === "streaming" && last?.role === "assistant" && !last.parts.some((p) => p.type === "text" && p.text));
 
   return (
-    <div ref={wrap} className="surface-tile flex h-[min(75vh,720px)] flex-col overflow-hidden rounded-xl border border-border">
+    <div ref={wrap} className={`surface-tile flex flex-col overflow-hidden rounded-xl border border-border ${embedded ? "h-[min(72vh,680px)] min-h-[560px]" : "h-[min(75vh,720px)]"}`}>
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <MayaAvatar />
         <div>
           <p className="font-semibold">Maya</p>
           <p className="text-sm text-muted-foreground">Front desk · Brightleaf Family Medicine</p>
         </div>
-        {!voiceOn && (
-          <button type="button" onClick={() => setVoiceOn(true)} className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-xl px-3 font-semibold text-primary hover:bg-accent">
-            <Mic className="h-4 w-4" aria-hidden="true" /> Talk to Maya
-          </button>
-        )}
+        <span className="ml-auto inline-flex items-center gap-2 text-sm text-success"><span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />Available</span>
       </div>
 
       <Conversation className="flex-1">
@@ -257,13 +250,6 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
       </Conversation>
 
       <div className="border-t border-border p-3">
-        {voiceOn && (
-          <div className="mb-3">
-            <Suspense fallback={<p className="text-sm text-muted-foreground">Starting voice…</p>}>
-              <VoicePanel messages={messages} busy={busy} onTranscript={setInput} onSend={sendVoice} onEnd={() => setVoiceOn(false)} />
-            </Suspense>
-          </div>
-        )}
         <PromptInput onSubmit={(msg) => (busy ? stop() : send(msg.text))}>
           <PromptInputTextarea
             aria-label="Message Maya"
@@ -272,8 +258,9 @@ export function MayaChat({ voice = false }: { voice?: boolean }) {
             onChange={(e) => setInput(e.currentTarget.value)}
             className="text-base"
           />
-          <PromptInputFooter className="justify-end">
-            <PromptInputSubmit status={status} disabled={!busy && !input.trim()} className="h-11 w-11" />
+          <PromptInputFooter className="items-center gap-1">
+            <VoicePanel messages={messages} busy={busy} onTranscript={setInput} onSend={sendVoice} onEnd={focus} />
+            <PromptInputSubmit status={status} disabled={!busy && !input.trim()} className="h-11 w-11 shrink-0 rounded-full bg-cta text-cta-foreground hover:bg-cta/90" />
           </PromptInputFooter>
         </PromptInput>
         <p className="mt-2 text-sm text-muted-foreground">Demo with fictional data - do not enter real health information.</p>

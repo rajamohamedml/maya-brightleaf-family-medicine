@@ -1,7 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Mic, Stethoscope, Users, LogOut, Lock } from "lucide-react";
+import { Stethoscope, Users, LogOut, Lock } from "lucide-react";
 import { LeafMark } from "./Logo";
-import { VOICE_ENABLED } from "@/lib/clinic-info";
 
 const focus =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -43,11 +42,6 @@ export function Header({ onSignOut }: { onSignOut?: () => void }) {
         </div>
         <div className="flex items-center gap-1">
           <SideSwitch inClinic={inClinic} />
-          {VOICE_ENABLED && !inClinic && (
-            <Link to="/chat" search={{ voice: 1 }} className={`${link} font-semibold text-primary`}>
-              <Mic className="h-4 w-4" aria-hidden="true" /> Talk to Maya
-            </Link>
-          )}
           {inClinic && onSignOut && (
             <button type="button" onClick={onSignOut} className={`${link} hidden sm:flex`}>
               <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> Sign out

@@ -25,5 +25,5 @@ export const HOURS = [
   { days: "Sat–Sun", time: "Closed" },
 ];
 
-// Voice ("Talk to Maya") ships in a later step; hidden everywhere until configured.
+// Voice is available from Maya's unified chat composer.
 export const VOICE_ENABLED = true;
