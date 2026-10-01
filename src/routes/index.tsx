@@ -30,7 +30,9 @@ export const Route = createFileRoute("/")({
         content:
           "Maya books, confirms and reminds, 24/7. Get in with Dr. Rahman — no hold music. Fictional demo clinic.",
       },
-      { property: "og:title", content: "Book with Dr. Rahman — Brightleaf Family Medicine" },
+      { property: "og:title", content: "Maya - the front desk that never puts you on hold" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:description",
         content:
