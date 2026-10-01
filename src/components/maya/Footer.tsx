@@ -12,7 +12,7 @@ export function Footer() {
       <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-4 py-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <p>Demo with fictional data - do not enter real health information.</p>
+          <div><p>Demo with fictional data - do not enter real health information.</p><p className="mt-1">Next on the roadmap: real phone line, EHR integration, SMS, insurance eligibility checks, HIPAA-ready hosting with BAAs.</p></div>
         </div>
         <nav aria-label="Footer" className="flex items-center gap-1">
           <Link to="/watch" className={linkCls}>

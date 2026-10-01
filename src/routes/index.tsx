@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   Video,
   X,
+  MessageCircle,
+  Sparkles,
 } from "lucide-react";
 import { PageShell } from "@/components/maya/PageShell";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
@@ -110,6 +112,25 @@ function Landing() {
           </Suspense>
         </div>
         <div className="mt-10 min-w-0 lg:col-start-1 lg:row-start-2 lg:mt-0">
+
+      <section aria-labelledby="how" className="mb-10">
+        <h2 id="how" className="text-xl font-semibold">How Maya works</h2>
+        <ol className="mt-4 grid gap-3 sm:grid-cols-3">
+          {[
+            { icon: MessageCircle, title: "Ask", text: "Tell Maya what you need, by chat or voice." },
+            { icon: CalendarCheck, title: "Book", text: "Pick a time that's really open. You're confirmed right away." },
+            { icon: Sparkles, title: "Relax", text: "Maya sends reminders and your intake form for you." },
+          ].map((s, i) => (
+            <li key={s.title} className="surface-tile rounded-xl border border-border p-4">
+              <p className="flex items-center gap-2 font-semibold">
+                <s.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                <span>{i + 1}. {s.title}</span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{s.text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <section
         aria-labelledby="ba"
