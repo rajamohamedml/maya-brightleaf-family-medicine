@@ -78,6 +78,7 @@ function ActivityPage() {
   const q = useQuery({ queryKey: ["activity"], queryFn: () => fetchActivity() });
   const [busy, setBusy] = useState<ClockAction | null>(null);
   const [openMsg, setOpenMsg] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const run = useMutation({
     mutationFn: (action: ClockAction) => clock({ data: { action } }),
@@ -123,18 +124,59 @@ function ActivityPage() {
             <span className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-sm text-muted-foreground">Real time</span>
           )}
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {CLOCK_BUTTONS.map((b) => (
-            <Button key={b.action} variant="outline" className="min-h-11" disabled={!!busy} onClick={() => run.mutate(b.action)}>
-              {busy === b.action ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <b.icon className="h-4 w-4" aria-hidden="true" />}
-              {b.label}
-            </Button>
-          ))}
-          <Button variant="cta" className="min-h-11" disabled={!!busy} onClick={() => run.mutate("run_only")}>
-            {busy === "run_only" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
-            Run automations now
-          </Button>
-        </div>
+        <TooltipProvider delayDuration={200}>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {CLOCK_BUTTONS.map((b) => (
+              <Tooltip key={b.action}>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" className="min-h-11" disabled={!!busy} onClick={() => run.mutate(b.action)}>
+                    {busy === b.action ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <b.icon className="h-4 w-4" aria-hidden="true" />}
+                    {b.label}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-56 text-center">{b.tip}</TooltipContent>
+              </Tooltip>
+            ))}
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="cta" className="min-h-11" disabled={!!busy} onClick={() => run.mutate("run_only")}>
+                    {busy === "run_only" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
+                    Run automations now
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-56 text-center">{RUN_TIP}</TooltipContent>
+              </Tooltip>
+              <Popover open={helpOpen} onOpenChange={setHelpOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" className="min-h-11 min-w-11" aria-label="How the demo clock works" aria-expanded={helpOpen}>
+                    <Info className="h-5 w-5" aria-hidden="true" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 sm:w-96">
+                  <h2 className="font-semibold">How the demo clock works</h2>
+                  <p className="mt-2 text-sm">
+                    This page shows what Maya does on her own. The clock lets you fast-forward time to watch her follow-ups happen — nothing is actually sent.
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm">
+                    <li><span className="font-semibold">+1 hour</span> — jump ahead one hour. Good for seeing a waitlist offer expire.</li>
+                    <li><span className="font-semibold">+1 day</span> — jump ahead one day. Reminders and reconfirm requests go out.</li>
+                    <li><span className="font-semibold">+2 days</span> — jump ahead two days. Unconfirmed visits get released and offered to the waitlist.</li>
+                    <li><span className="font-semibold">7:00am tomorrow</span> — jump to tomorrow at 7am, when same-day sick slots open.</li>
+                    <li><span className="font-semibold">Reset to real time</span> — stop simulating and use today's real date and time.</li>
+                    <li><span className="font-semibold">Run automations now</span> — run Maya's checks at the current time without moving the clock.</li>
+                  </ul>
+                  <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
+                    Tip: try <span className="font-semibold">Cancel a visit</span> in Schedule, then <span className="font-semibold">+1 day</span> twice, and watch What Maya did and the Outbox.
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        </TooltipProvider>
+        {d.simulated && (
+          <p className="mt-3 text-sm text-muted-foreground">Simulated time — fast-forward to see Maya's follow-ups. Nothing is really sent.</p>
+        )}
       </section>
 
       {/* Impact */}
