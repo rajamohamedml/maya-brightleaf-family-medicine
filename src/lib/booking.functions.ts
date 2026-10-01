@@ -330,7 +330,7 @@ export const manageAppointment = createServerFn({ method: "POST" })
     } else if (data.action === "cancel") {
       await db().from("appointments").update({ status: "cancelled" }).eq("id", a.id);
       await msg("cancellation", "Your visit is cancelled", `Your ${view.visit_name} on ${fmtSlot(a.start_at)} is cancelled. The time is now open for others.`);
-      await refillAfterChange(a.start_at, `${view.first_name} cancelled their ${view.visit_name} on ${fmtSlot(a.start_at)}`);
+      await refillAfterChange(a.start_at, view.visit_type_code, `${view.first_name} cancelled their ${view.visit_name} on ${fmtSlot(a.start_at)}`);
     } else {
       if (!data.new_start_at) return err("missing_time", "Please choose a new time.");
       const vt = await loadVisitType(view.visit_type_code);
@@ -348,7 +348,7 @@ export const manageAppointment = createServerFn({ method: "POST" })
         throw error;
       }
       await msg("reschedule", "Your visit has moved", `Your ${view.visit_name} moved from ${fmtSlot(a.start_at)} to ${fmtSlot(slot.start_at)} (Central Time).`);
-      await refillAfterChange(a.start_at, `${view.first_name} moved their ${view.visit_name} away from ${fmtSlot(a.start_at)}`);
+      await refillAfterChange(a.start_at, view.visit_type_code, `${view.first_name} moved their ${view.visit_name} away from ${fmtSlot(a.start_at)}`);
     }
     const updated = await loadByToken(data.token);
     return { ok: true as const, visit: viewDto(updated!) };
@@ -489,9 +489,9 @@ export const upsertLead = createServerFn({ method: "POST" })
   });
 
 /* ---------- waitlist refill (shared with the automation engine) ---------- */
-async function refillAfterChange(startAt: string, what: string) {
+async function refillAfterChange(startAt: string, visitCode: string, what: string) {
   const now = await getNow();
-  const offered = await refillSlot(startAt, now, origin());
+  const offered = await refillSlot(startAt, visitCode, now, origin());
   await logRun("waitlist_refill", 0, { action: offered ? "offered" : "freed", text: `${what}${offered ? ` — offered the time to ${offered} from the waitlist.` : ". No waitlist match."}` });
 }
 
@@ -537,7 +537,7 @@ export const respondOffer = createServerFn({ method: "POST" })
     const p = w.patients;
     if (!data.accept) {
       await db().from("waitlist").update({ status: "expired" }).eq("id", w.id);
-      await refillAfterChange(w.offered_start_at, `${p.first_name} ${p.last_name} said no thanks to ${fmtSlot(w.offered_start_at)}`);
+      await refillAfterChange(w.offered_start_at, w.offered_visit_code, `${p.first_name} ${p.last_name} said no thanks to ${fmtSlot(w.offered_start_at)}`);
       return { ok: true as const, declined: true, token: null };
     }
     const vt = await loadVisitType(w.offered_visit_code);
