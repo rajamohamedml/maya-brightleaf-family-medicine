@@ -13,3 +13,4 @@
 - [ ] GitHub connect (user action in editor)
 
 - [x] Make Talk to Maya listen continuously from first tap, center the live voice status, and show full clickable URLs in requested previews.
+- [ ] Voice Stop button stops all voice and chat immediately
