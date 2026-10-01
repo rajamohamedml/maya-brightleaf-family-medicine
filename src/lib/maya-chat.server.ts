@@ -175,21 +175,16 @@ export async function handleMayaChat(request: Request): Promise<Response> {
 
   const tools = {
     check_emergency: tool({
-      description: "Screen the patient's words for emergency red flags (chest pain, trouble breathing, stroke signs, heavy bleeding, thoughts of self-harm). Returns { emergency: boolean }.",
-      inputSchema: z.object({ text: z.string() }),
-      execute: async ({ text }) => {
-        if (keywordEmergency(text)) return { emergency: true };
-        const screenText =
-          emergencyAlreadyHandled && latestUser.trim() ? latestUser : text;
-        const r = streamText({
-          model: provider.responses(MODEL),
-          system:
-            "Answer only YES or NO. Does this message describe chest pain, trouble breathing, signs of a stroke, heavy bleeding, or thoughts of self-harm/suicide happening now?",
-          prompt: screenText,
-          providerOptions: { openai: reasoning },
-        });
-        const out = (await r.text).trim().toUpperCase();
-        return { emergency: out.startsWith("YES") };
+      description:
+        "Screen the patient's LATEST message only for emergency red flags (chest pain, trouble breathing, stroke signs, heavy bleeding, thoughts of self-harm). Never screens earlier conversation history. Returns { emergency: boolean }.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        if (clarifiedNonEmergency) return { emergency: false };
+        // Screen only the newest patient words — earlier symptom text in the
+        // history must never re-trigger the emergency reply on its own.
+        const screenText = latestUser.trim() || "none";
+        if (keywordEmergency(screenText) && !emergencyAlreadyHandled) return { emergency: true };
+        return { emergency: await screenEmergencyText(provider, screenText, reasoning) };
       },
     }),
     lookup_patient: tool({
