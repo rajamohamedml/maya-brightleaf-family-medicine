@@ -104,9 +104,6 @@ export function VoicePanel({
   onIdlePrompt,
   onIdleClose,
   skipGreeting = false,
-  showClear = false,
-  clearDisabled = false,
-  onClear,
 }: {
   messages: UIMessage[];
   busy: boolean;
@@ -120,10 +117,6 @@ export function VoicePanel({
   onIdlePrompt?: (text: string) => void;
   onIdleClose?: () => void;
   skipGreeting?: boolean;
-  /** "Clear conversation" control, rendered beside Keep listening. */
-  showClear?: boolean;
-  clearDisabled?: boolean;
-  onClear?: () => void;
 }) {
   const [supported, setSupported] = useState(true);
   const [denied, setDenied] = useState(false);
