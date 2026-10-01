@@ -20,13 +20,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PageShell } from "@/components/maya/PageShell";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Field, SelectField, type FormErrors } from "@/components/booking/Field";
 import { Segmented, SlotPicker, WindowToggle, type PickedSlot, type SlotWindow } from "@/components/booking/SlotPicker";
-import { VisitCard, addVisitToCalendar, type VisitSummary } from "@/components/booking/VisitCard";
+import { VisitCard, AddToCalendar, type VisitSummary } from "@/components/booking/VisitCard";
 import {
   bookAppointment,
   createTask,
@@ -285,7 +285,7 @@ function BookPage() {
           </div>
           <div className="flex flex-col gap-3">
             <Button asChild variant="cta" size="lg"><Link to="/intake/$token" params={{ token: booked.token }}>Complete intake now</Link></Button>
-            <Button variant="outline" size="lg" onClick={() => addVisitToCalendar(booked.visit)}><CalendarPlus /> Add to calendar</Button>
+            <AddToCalendar visit={booked.visit} className={buttonVariants({ variant: "outline", size: "lg" })}><CalendarPlus /> Add to calendar</AddToCalendar>
             <Button asChild variant="outline" size="lg"><Link to="/visit/$token" params={{ token: booked.token }}><Settings2 /> Manage my visit</Link></Button>
           </div>
         </div>

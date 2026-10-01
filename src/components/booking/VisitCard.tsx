@@ -2,7 +2,9 @@ import { CalendarDays, Clock, MapPin, Video } from "lucide-react";
 import { StatusBadge, type ApptStatus } from "@/components/maya/StatusBadge";
 import { CLINIC } from "@/lib/clinic-info";
 import { fmtLongDay, fmtTime } from "@/lib/tz";
-import { downloadIcs } from "@/lib/ics";
+import type { ReactNode } from "react";
+import { googleCalendarUrl, outlookCalendarUrl, type CalEvent } from "@/lib/ics";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export type VisitSummary = {
   name: string;
@@ -38,12 +40,39 @@ export function VisitCard({ visit }: { visit: VisitSummary }) {
   );
 }
 
-export function addVisitToCalendar(v: VisitSummary) {
-  downloadIcs({
+function toEvent(v: Pick<VisitSummary, "name" | "start_at" | "end_at" | "mode">): CalEvent {
+  return {
     title: `${v.name} — ${CLINIC.name}`,
     start: v.start_at,
     end: v.end_at,
     location: v.mode === "telehealth" ? "Video visit" : CLINIC.address,
     description: `Visit with ${CLINIC.doctor}. Bring photo ID, insurance card and a list of your medicines.`,
-  });
+  };
+}
+
+/** "Add to calendar" button that lets the patient pick Google or Outlook. */
+export function AddToCalendar({
+  visit,
+  className,
+  children,
+}: {
+  visit: Pick<VisitSummary, "name" | "start_at" | "end_at" | "mode">;
+  className?: string;
+  children: ReactNode;
+}) {
+  const ev = toEvent(visit);
+  const item = "min-h-11 cursor-pointer gap-2";
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className={className}>{children}</DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        <DropdownMenuItem asChild className={item}>
+          <a href={googleCalendarUrl(ev)} target="_blank" rel="noopener noreferrer">Google Calendar</a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className={item}>
+          <a href={outlookCalendarUrl(ev)} target="_blank" rel="noopener noreferrer">Outlook Calendar</a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
