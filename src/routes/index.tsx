@@ -210,6 +210,8 @@ function Landing() {
           <p className="mt-1 text-muted-foreground">{CLINIC.phone}</p>
         </div>
       </section>
+        </div>
+      </div>
     </PageShell>
   );
 }
