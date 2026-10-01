@@ -172,9 +172,7 @@ async function findOrCreatePatient(p: z.infer<typeof patientInput>) {
   return { patient: data };
 }
 
-export const bookAppointment = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
-    z
+const bookInput = z
       .object({
         patient: patientInput,
         visit_type_code: z.string().max(40),
@@ -184,9 +182,10 @@ export const bookAppointment = createServerFn({ method: "POST" })
         source: z.enum(["form", "chat", "voice", "staff", "waitlist"]).default("form"),
         lead_id: z.string().uuid().optional(),
       })
-      .parse(d),
-  )
-  .handler(async ({ data }) => {
+      ;
+type BookInput = z.infer<typeof bookInput>;
+
+async function bookCore(data: BookInput) {
     if (data.source === "staff" && !(await isStaffRequest())) return err("forbidden", "Only signed-in staff can add visits.");
     const vt = await loadVisitType(data.visit_type_code);
     if (!vt) return err("unknown_visit_type", "That visit type isn't available.");
@@ -272,7 +271,11 @@ export const bookAppointment = createServerFn({ method: "POST" })
         first_name: patient.first_name,
       },
     };
-  });
+}
+
+export const bookAppointment = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => bookInput.parse(d))
+  .handler(({ data }) => bookCore(data));
 
 /* ---------- manage-appointment ---------- */
 async function loadByToken(t: string) {
