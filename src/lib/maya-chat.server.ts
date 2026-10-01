@@ -154,7 +154,8 @@ export async function handleMayaChat(request: Request): Promise<Response> {
     headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
     fetch: runIdFetch.fetch,
   });
-  const reasoning = {
+  type ReasoningOpts = { store: false; forceReasoning: true; reasoningEffort: "low"; reasoningSummary: "auto"; include: string[] };
+  const reasoning: ReasoningOpts = {
     store: false,
     forceReasoning: true,
     reasoningEffort: "low",
