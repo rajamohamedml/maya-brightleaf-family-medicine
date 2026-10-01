@@ -9,6 +9,9 @@ import { pickVoice, toSpeech } from "./speech-text";
 type VState = "idle" | "listening" | "thinking" | "speaking";
 const CONSENT_KEY = "maya-voice-consent";
 const SILENCE_MS = 1500;
+export const VOICE_GREETING =
+  "Welcome to Brightleaf Family Medicine. I'm Maya. I can book a visit, answer questions about the clinic, or pass a message to Dr's team. How can I help you today?";
+const BOOKING_CLOSING = "At Brightleaf Family Medicine, your well-being is our sole purpose";
 
 type Rec = {
   lang: string;
@@ -39,18 +42,31 @@ function replyText(m: UIMessage): string {
   return m.parts.map((p) => (p.type === "text" ? p.text : "")).join(" ");
 }
 
+function hasBooking(m: UIMessage): boolean {
+  return m.parts.some(
+    (p) =>
+      p.type === "tool-book_appointment" &&
+      (p as { state?: string; output?: { ok?: boolean } }).state === "output-available" &&
+      (p as { output?: { ok?: boolean } }).output?.ok === true,
+  );
+}
+
 export function VoicePanel({
   messages,
   busy,
   onTranscript,
   onSend,
   onEnd,
+  onSessionStart,
+  startSignal = 0,
 }: {
   messages: UIMessage[];
   busy: boolean;
   onTranscript: (t: string) => void;
   onSend: (t: string) => void;
   onEnd: () => void;
+  onSessionStart?: () => void;
+  startSignal?: number;
 }) {
   const [supported, setSupported] = useState(true);
   const [denied, setDenied] = useState(false);
@@ -64,12 +80,14 @@ export function VoicePanel({
   const speakToken = useRef(0);
   const ended = useRef(false);
   const active = useRef(false); // mic toggled on by the user
+  const greeted = useRef(false);
+  const lastStartSignal = useRef(startSignal);
   const handsFreeRef = useRef(handsFree);
   handsFreeRef.current = handsFree;
 
   useEffect(() => {
     ended.current = false;
-    setSupported(!!getRecCtor() && "speechSynthesis" in window);
+    setSupported(!!getRecCtor());
     setConsented(localStorage.getItem(CONSENT_KEY) === "1");
     window.speechSynthesis?.getVoices();
     return () => {
@@ -84,7 +102,7 @@ export function VoicePanel({
     const Ctor = getRecCtor();
     if (!Ctor || ended.current) return;
     speakToken.current++;
-    window.speechSynthesis.cancel();
+    window.speechSynthesis?.cancel();
     recRef.current?.abort();
     const rec = new Ctor();
     rec.lang = "en-US";
@@ -137,16 +155,77 @@ export function VoicePanel({
   const stopListening = () => {
     active.current = false;
     recRef.current?.stop();
+    greeted.current = false;
+    onEnd();
   };
+
+  const beginVoiceSession = useCallback(() => {
+    if (ended.current) ended.current = false;
+    active.current = true;
+    onSessionStart?.();
+    if (greeted.current) {
+      listen();
+      return;
+    }
+
+    greeted.current = true;
+    const speech = window.speechSynthesis;
+    if (!speech) {
+      setState("idle");
+      listen();
+      return;
+    }
+
+    const token = ++speakToken.current;
+    const utterance = new SpeechSynthesisUtterance(VOICE_GREETING);
+    utterance.lang = "en-US";
+    utterance.rate = 1.0;
+    const voice = pickVoice();
+    if (voice) utterance.voice = voice;
+    utterance.onend = utterance.onerror = () => {
+      if (token !== speakToken.current || ended.current || !active.current) return;
+      listen();
+    };
+    setState("speaking");
+    speech.cancel();
+    speech.speak(utterance);
+  }, [listen, onSessionStart]);
+
+  const requestStart = useCallback(() => {
+    if (!getRecCtor()) {
+      onSessionStart?.();
+      return;
+    }
+    if (!consented) {
+      setShowNotice(true);
+      return;
+    }
+    beginVoiceSession();
+  }, [beginVoiceSession, consented, onSessionStart]);
+
+  useEffect(() => {
+    if (startSignal === lastStartSignal.current) return;
+    lastStartSignal.current = startSignal;
+    requestStart();
+  }, [requestStart, startSignal]);
 
   // Speak Maya's reply once the voice turn finishes streaming.
   useEffect(() => {
     if (busy || !awaitingReply.current) return;
     awaitingReply.current = false;
     const last = messages.at(-1);
-    const text = last?.role === "assistant" ? toSpeech(replyText(last)) : "";
+    const responseText = last?.role === "assistant" ? replyText(last) : "";
+    const text = last?.role === "assistant"
+      ? toSpeech(`${responseText}${hasBooking(last) ? `. ${BOOKING_CLOSING}` : ""}`)
+      : "";
     if (!text) {
       setState("idle");
+      return;
+    }
+    if (!("speechSynthesis" in window)) {
+      setState("idle");
+      if (handsFreeRef.current && active.current) listen();
+      else active.current = false;
       return;
     }
     const token = ++speakToken.current;
@@ -167,20 +246,20 @@ export function VoicePanel({
   }, [busy, messages, listen]);
 
   const onMic = () => {
-    if (!consented) {
-      setShowNotice(true);
-      return;
-    }
     if (state === "listening") return stopListening();
     if (state === "thinking") return;
-    ended.current = false;
-    active.current = true;
-    listen(); // also barges in while Maya is speaking
+    if (state === "speaking") {
+      active.current = true;
+      listen(); // barge in while Maya is speaking, including during the greeting
+      return;
+    }
+    requestStart();
   };
 
   const end = () => {
     ended.current = true;
     active.current = false;
+    greeted.current = false;
     speakToken.current++;
     recRef.current?.abort();
     recRef.current = null;
@@ -307,8 +386,7 @@ export function VoicePanel({
                   setConsented(true);
                   setShowNotice(false);
                   ended.current = false;
-                  active.current = true;
-                  window.setTimeout(listen, 0);
+                   window.setTimeout(beginVoiceSession, 0);
                 }}
               >
                 <Mic className="h-4 w-4" aria-hidden="true" /> Start talking
