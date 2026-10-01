@@ -7,17 +7,19 @@ import { Footer } from "@/components/maya/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getNavCounts } from "@/lib/staff.functions";
+import { useStaffAccess } from "@/lib/staff-access";
+import { ClinicLoading } from "@/components/staff/ClinicLoading";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/clinic")({
   ssr: false,
   head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
   beforeLoad: async ({ location }) => {
-    if (location.pathname.startsWith("/clinic/login")) return { isStaff: false };
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/clinic/login" });
-    const { data: ok } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "staff" });
-    return { isStaff: !!ok, email: data.user.email ?? "" };
+    if (location.pathname.startsWith("/clinic/login")) return;
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/clinic/login" });
   },
+  pendingComponent: ClinicLoading,
   component: ClinicLayout,
 });
 
@@ -51,14 +53,21 @@ function CountBadge({ n }: { n?: number | undefined }) {
 
 function ClinicLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const ctx = Route.useRouteContext();
   const signOut = useSignOut();
+  const navigate = useNavigate();
   const isLogin = pathname.startsWith("/clinic/login");
+  const access = useStaffAccess(!isLogin);
+  const ctx = { email: access.email };
   const counts = useServerFn(getNavCounts);
-  const q = useQuery({ queryKey: ["staff", "nav"], queryFn: () => counts(), enabled: !isLogin && ctx.isStaff, staleTime: 30_000 });
+  const q = useQuery({ queryKey: ["staff", "nav"], queryFn: () => counts(), enabled: !isLogin && access.state === "allowed", staleTime: 30_000 });
+
+  useEffect(() => {
+    if (!isLogin && access.state === "signed_out") navigate({ to: "/clinic/login", replace: true });
+  }, [isLogin, access.state, navigate]);
 
   if (isLogin) return <Outlet />;
-  if (!ctx.isStaff) {
+  if (access.state === "checking" || access.state === "signed_out") return <ClinicLoading />;
+  if (access.state === "denied") {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <Header />
