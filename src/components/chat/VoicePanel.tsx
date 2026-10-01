@@ -10,7 +10,7 @@ export type VoiceState = "idle" | "listening" | "thinking" | "speaking";
 const CONSENT_KEY = "maya-voice-consent";
 const SILENCE_MS = 2500;
 const DIGIT_SILENCE_MS = 3500; // phone numbers / dates of birth
-const RESTART_MS = 250;
+const RESTART_MS = 50;
 export const VOICE_GREETING =
   "Welcome to Brightleaf Family Medicine. I'm Maya, your anytime front desk assistant. How can I help you today?";
 const BOOKING_CLOSING = "At Brightleaf Family Medicine, your well-being is our sole purpose";
@@ -193,7 +193,7 @@ export function VoicePanel({
     navigator.mediaDevices
       .getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
       .then((stream) => {
-        if (!speaking.current || ended.current) {
+        if (!active.current || ended.current) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
@@ -262,8 +262,7 @@ export function VoicePanel({
     monitoring.current = false;
     speakToken.current++;
     window.speechSynthesis?.cancel();
-    stopVad();
-  }, [stopVad]);
+  }, []);
 
   const listen = useCallback(
     (opts?: { monitor?: boolean }) => {
@@ -271,7 +270,15 @@ export function VoicePanel({
       if (!Ctor || ended.current) return;
       const monitor = !!opts?.monitor;
       if (!monitor) cutSpeech();
-      recRef.current?.abort();
+      if (recRef.current) {
+        monitoring.current = monitor;
+        resultBase.current = resultCount.current;
+        if (!monitor) {
+          setState("listening");
+          armIdle();
+        }
+        return;
+      }
       const rec = new Ctor();
       rec.lang = "en-US";
       rec.interimResults = true;
@@ -331,6 +338,12 @@ export function VoicePanel({
           active.current = false;
           clearIdle(true);
           setDenied(true);
+          return;
+        }
+        if (["no-speech", "aborted"].includes(e.error) && active.current && !ended.current) {
+          window.setTimeout(() => {
+            if (!recRef.current && active.current && !ended.current) listen({ monitor: speaking.current || awaitingReply.current });
+          }, RESTART_MS);
         }
       };
       rec.onend = () => {
@@ -338,8 +351,8 @@ export function VoicePanel({
         if (recRef.current !== rec) return;
         recRef.current = null;
         if (monitoring.current) {
-          // Browser closed the monitor session while Maya is still talking — reopen it.
-          if (speaking.current && !ended.current) window.setTimeout(() => speaking.current && listen({ monitor: true }), RESTART_MS);
+          // Keep the microphone live while Maya is speaking or preparing a reply.
+          if (active.current && !ended.current) window.setTimeout(() => active.current && listen({ monitor: true }), RESTART_MS);
           return;
         }
         const text = (finalText || heard).trim();
@@ -362,6 +375,7 @@ export function VoicePanel({
           const intr = pendingInterruption.current ?? undefined;
           pendingInterruption.current = null;
           onSend(text, intr);
+          window.setTimeout(() => active.current && !ended.current && listen({ monitor: true }), RESTART_MS);
         } else if (active.current && !ended.current) {
           // Browser ended the session on its own — keep listening until the user taps off.
           window.setTimeout(() => active.current && !ended.current && listen(), RESTART_MS);
@@ -375,7 +389,8 @@ export function VoicePanel({
           armIdle();
         }
       } catch {
-        if (!monitor) setState("idle");
+        if (active.current && !ended.current) window.setTimeout(() => listen({ monitor }), RESTART_MS);
+        else if (!monitor) setState("idle");
       }
     },
     [cutSpeech, onSend, onTranscript, armIdle, clearIdle],
@@ -395,7 +410,6 @@ export function VoicePanel({
         if (token !== speakToken.current || ended.current) return;
         if (i >= list.length) {
           speaking.current = false;
-          stopVad();
           return after();
         }
         sentenceIdx.current = i;
@@ -412,7 +426,7 @@ export function VoicePanel({
         listen({ monitor: true });
       }
     },
-    [listen, startVad, stopVad],
+    [listen, startVad],
   );
 
   const stopListening = () => {
@@ -428,6 +442,10 @@ export function VoicePanel({
     active.current = true;
     clearIdle(true);
     onSessionStart?.();
+    // Ask for the echo-cancelled microphone and start recognition immediately
+    // in the user's tap, before Maya begins speaking.
+    startVad();
+    listen({ monitor: true });
     if (greeted.current || skipGreetingRef.current) {
       greeted.current = true;
       listen();
@@ -440,9 +458,8 @@ export function VoicePanel({
       listen();
       return;
     }
-    // The greeting plays before the mic opens, so Maya never hears herself.
-    // iOS needs the first speak inside the tap: speak now if voices are loaded,
-    // otherwise unlock the engine in the tap, then wait (max 1.5s) for voices.
+    // Recognition remains live during the greeting. Echo-like results are ignored,
+    // while real speech can still interrupt Maya.
     if (voicesReady()) {
       speakReply(VOICE_GREETING, () => {
         if (!ended.current && active.current) listen();
@@ -455,7 +472,7 @@ export function VoicePanel({
         if (!ended.current && active.current) listen();
       });
     });
-  }, [listen, onSessionStart, speakReply, clearIdle]);
+  }, [listen, onSessionStart, speakReply, clearIdle, startVad]);
 
   const requestStart = useCallback(() => {
     if (!getRecCtor()) {
@@ -541,10 +558,6 @@ export function VoicePanel({
     if (!active.current || ended.current || speaking.current || emergencyRef.current || awaitingReply.current) return;
     const step = idleStep.current;
     const text = IDLE_PROMPTS[step] ?? IDLE_PROMPTS[2];
-    // Stop the mic while Maya speaks the prompt, so she never hears herself.
-    const rec = recRef.current;
-    recRef.current = null;
-    rec?.abort();
     onTranscript("");
     onIdlePrompt?.(text);
     const after = () => {
@@ -554,7 +567,7 @@ export function VoicePanel({
       if (active.current) listen();
     };
     if (!window.speechSynthesis) return after();
-    speakReply(text, after);
+    speakReply(text, after, { monitor: true });
   };
 
   const interrupt = () => {
@@ -610,19 +623,14 @@ export function VoicePanel({
 
   const label = {
     idle: "Tap the mic to talk",
-    listening: "Listening…",
-    thinking: "Maya is thinking…",
-    speaking: "Maya is speaking — just talk, or tap Stop",
+    listening: "Listening...",
+    thinking: "Thinking...",
+    speaking: "Speaking...",
   }[state];
 
   return (
     <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
-      <span aria-live="polite" className="mr-auto truncate text-xs text-muted-foreground">
-        {state === "listening" && (
-          <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-primary motion-safe:animate-pulse" aria-hidden="true" />
-        )}
-        {state === "idle" ? "" : label}
-      </span>
+      <span className="mr-auto" />
       {(
         <label className="hidden min-h-11 cursor-pointer items-center gap-1.5 px-2 text-xs sm:flex">
           <input
