@@ -221,6 +221,25 @@
   border-radius: 12px;
   color: #e2e8f0;
 }
+/* Feedback popup: dark teal-navy panel, dark inputs, teal button with dark text. */
+@utility feedback-panel {
+  background: linear-gradient(135deg, #0f2a2a 0%, #111a2e 70%);
+  border: 1px solid rgba(20, 184, 166, 0.45);
+  border-radius: 12px;
+  color: #e2e8f0;
+}
+@utility feedback-input {
+  background: #0b1220;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+  &::placeholder { color: #94a3b8; }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 2px #14b8a6; }
+}
+@utility feedback-submit {
+  background: #14b8a6;
+  color: #062925;
+  &:hover:not(:disabled) { background: #2dd4bf; }
+}
 
 /* Toasts: type is told apart by icon + a plain title, never by colour. */
 [data-sonner-toast][data-styled="true"] { border-left: 4px solid #14b8a6 !important; }
