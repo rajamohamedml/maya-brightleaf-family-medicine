@@ -27,7 +27,6 @@ function SideSwitch({ inClinic }: { inClinic: boolean }) {
           <span className="hidden md:inline">{inClinic ? "Clinic dashboard" : "Watch"}</span>
         </Link>
       </nav>
-      <span className="rounded-full border border-border px-1.5 py-0.5 text-[14px] leading-none text-muted-foreground">Demo</span>
     </div>
   );
 }
