@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, Ban, ChevronLeft, ChevronRight, Loader2, Plus, Video, XCircle } from "lucide-react";
+import { AlertTriangle, Ban, ChevronLeft, ChevronRight, Loader2, Plus, SwatchBook, Video, XCircle } from "lucide-react";
 import { addBlock, getWeek, listPatients, setVisitStatus } from "@/lib/staff.functions";
 import { bookAppointment } from "@/lib/booking.functions";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
@@ -14,6 +14,7 @@ import { SlotPicker, type PickedSlot } from "@/components/booking/SlotPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { addDays, fmtDay, fmtLongDay, fmtTime, localMinutes, localDateStr, zonedToUtc } from "@/lib/tz";
 import { INSURERS, VISIT_TYPES } from "@/lib/clinic-info";
@@ -44,8 +45,42 @@ const BLOCK_STYLE: Record<string, { label: string; cls: string }> = {
   telehealth_only: { label: "Telehealth only", cls: "bg-accent/40 text-accent-foreground" },
   sick_hold: { label: "Sick hold", cls: "bg-warning-soft/60 text-warning" },
 };
+const BLOCK_LEGEND: { label: string; cls: string }[] = [
+  { label: "Lunch", cls: "bg-muted/60 border-border" },
+  { label: "Blocked", cls: "bg-destructive-soft/70 border-destructive/60" },
+  { label: "Telehealth-only", cls: "bg-accent/40 border-accent-foreground/50" },
+  { label: "Sick hold", cls: "bg-warning-soft/60 border-warning/60" },
+];
+const STRIPES = { backgroundImage: "repeating-linear-gradient(45deg, transparent 0 2px, rgba(226,232,240,0.14) 2px 4px)" };
+const LEGEND_SHORT: Record<string, string> = {
+  new_patient: "New patient",
+  physical: "Annual physical",
+  medicare_awv: "Medicare wellness",
+  follow_up: "Follow-up",
+  sick: "Sick visit",
+  telehealth: "Telehealth",
+};
 const selectCls = "min-h-11 w-full rounded-md border border-input bg-background px-3 text-foreground";
 const TIMES = Array.from({ length: ROWS + 1 }, (_, i) => START + i * 15);
+
+function LegendList({ className }: { className?: string }) {
+  return (
+    <ul className={cn("flex flex-wrap items-center gap-x-4 gap-y-1.5", className)} aria-label="Schedule colour legend">
+      {VISIT_TYPES.map((v) => (
+        <li key={v.code} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <span aria-hidden="true" className={cn("h-3 w-3 shrink-0 rounded-[3px] border", VISIT_SCHEDULE_COLOR[v.code])} />
+          {LEGEND_SHORT[v.code] ?? v.name}
+        </li>
+      ))}
+      {BLOCK_LEGEND.map((b) => (
+        <li key={b.label} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <span aria-hidden="true" className={cn("h-3 w-3 shrink-0 rounded-[3px] border", b.cls)} style={STRIPES} />
+          {b.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function Schedule() {
   const [monday, setMonday] = useState<string | undefined>();
@@ -95,7 +130,19 @@ function Schedule() {
           </Button>
         </div>
 
-        <VisitLegend className="col-span-full mt-1 sm:row-start-2 xl:row-start-1 xl:col-start-2 xl:col-span-2 xl:justify-self-end" />
+        <div className="col-span-full mt-1 flex items-center justify-between gap-3 sm:row-start-2 xl:row-start-2 xl:col-span-3">
+          <LegendList className="hidden md:flex" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="min-h-11 md:hidden" aria-label="Show colour legend">
+                <SwatchBook className="h-4 w-4" aria-hidden="true" /> Legend
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64">
+              <LegendList className="flex-col items-start gap-2" />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
 
@@ -177,12 +224,6 @@ function Schedule() {
           </div>
         </div>
       )}
-
-      <ul className="mt-3 flex flex-wrap gap-2 text-sm" aria-label="Legend">
-        {VISIT_TYPES.map((v) => (
-          <li key={v.code} className={cn("rounded-full border-l-4 border-y border-r px-2.5 py-1 text-foreground", VISIT_SCHEDULE_COLOR[v.code])}>{v.name}</li>
-        ))}
-      </ul>
 
       <Sheet open={!!open} onOpenChange={(o) => !o && setOpenId(null)}>
         <SheetContent>
