@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { addDays, isoDow, localDateStr, localMinutes, zonedToUtc } from "./tz";
 import { getRequest } from "@tanstack/react-start/server";
+import { resolveAppUrl } from "./app-url.server";
 import { refillFreedSlot, runAutomations, summaryText } from "./automations.server";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -110,7 +111,7 @@ export const getToday = createServerFn({ method: "POST" })
 
 function reqOrigin() {
   try {
-    return new URL(getRequest().url).origin;
+    return resolveAppUrl(getRequest());
   } catch {
     return "";
   }
@@ -265,7 +266,7 @@ export const getNavCounts = createServerFn({ method: "POST" })
 /* ---------------- Activity: demo clock, impact, feed, outbox ---------------- */
 function requestOrigin() {
   try {
-    return new URL(getRequest().url).origin;
+    return resolveAppUrl(getRequest());
   } catch {
     return "";
   }

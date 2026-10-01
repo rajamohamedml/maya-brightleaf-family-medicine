@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
+import { resolveAppUrl } from "./app-url.server";
 import { z } from "zod";
 import {
   BLOCKING_STATUSES,
@@ -38,7 +39,7 @@ const toSlotDto = (s: Slot) => ({ start_at: s.start_at, end_at: s.end_at, label:
 
 function origin() {
   try {
-    return new URL(getRequest().url).origin;
+    return resolveAppUrl(getRequest());
   } catch {
     return "";
   }
@@ -472,13 +473,14 @@ export const upsertLead = createServerFn({ method: "POST" })
         last_name: z.string().trim().max(60).optional(),
         phone: z.string().trim().max(30).optional(),
         email: z.string().trim().max(120).optional(),
+        source: z.enum(["form", "chat"]).default("form"),
       })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const { id, ...rest } = data;
+    const { id, source, ...rest } = data;
     const row = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined && v !== ""));
-    const payload = { ...row, last_activity_at: new Date().toISOString(), source: "form" as const };
+    const payload = { ...row, last_activity_at: new Date().toISOString(), source };
     if (id) {
       const { data: upd } = await db().from("leads").update(payload).eq("id", id).is("converted_appointment_id", null).select("id").maybeSingle();
       if (upd) return { id: upd.id };

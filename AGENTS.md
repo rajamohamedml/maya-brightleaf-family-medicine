@@ -10,11 +10,13 @@
 <!-- LOVABLE:END -->
 
 # Architecture rules
-- Demo data is rebuilt by the SQL function `public.seed_demo()` (service role only) — one idempotent reset point for demos.
-- Public clinic facts for the landing page live in `src/lib/clinic-info.ts` — anon users have no table access.
-- Shared UI lives in `src/components/maya/`; the app uses a token-driven dark clinical theme in `src/styles.css` (cta = coral, primary = teal) so every page inherits one accessible visual system.
-- `/clinic` is a layout route (`clinic.tsx`) with desktop left nav and mobile bottom tabs.
-- All slot math lives in `src/lib/scheduling.server.ts`; every patient action goes through server functions in `src/lib/booking.functions.ts` (zod-validated, service role) — one scheduling brain, and anon users never touch tables. The DB exclusion constraint is the final guard against double booking.
-- Clinic-time math uses `src/lib/tz.ts` (Intl only, America/Chicago) — no extra date library needed.
-- Staff area: all /clinic data goes through `src/lib/staff.functions.ts` (requireSupabaseAuth + has_role 'staff'), and RLS on every table requires the staff role — two independent guards. Staff 'Add visit' reuses bookAppointment with source 'staff', which re-checks the staff role server-side.
-- Follow-through automations live in `src/lib/automations.server.ts` (idempotent via outbox checks, uses simulated time); run from the staff demo clock (`setDemoClock`) or the cron-secret route `/api/public/hooks/run-automations` — no Supabase edge functions in this stack. The demo reset runs only via the staff-checked `resetDemo` server function.
+- Demo reset: SQL `public.seed_demo()` (service role only), called only by staff-checked `resetDemo` — one idempotent reset point.
+- Public clinic facts: `src/lib/clinic-info.ts` — anon has no table access.
+- Shared UI in `src/components/maya/`; token dark theme in `src/styles.css` (cta coral, primary teal) — one accessible system.
+- `/clinic` layout route: desktop left nav, mobile bottom tabs.
+- Slot math only in `src/lib/scheduling.server.ts`; patient actions via zod server fns in `src/lib/booking.functions.ts` — one scheduling brain; DB exclusion constraint is the final double-booking guard.
+- Clinic time via `src/lib/tz.ts` (Intl, America/Chicago) — no date library.
+- Staff data via `src/lib/staff.functions.ts` (auth + has_role 'staff') plus staff-only RLS — two guards.
+- Automations: `src/lib/automations.server.ts` (idempotent, simulated time), run by staff demo clock or cron route `/api/public/hooks/run-automations` — no edge functions.
+- Maya chat: route `/api/maya-chat` (`src/lib/maya-chat.server.ts`); tools reuse booking server fns; keyword red-flag gate before any model call — safety server-side.
+- Message links via `resolveAppUrl` (`src/lib/app-url.server.ts`): APP_URL else request public origin — works in preview and published.

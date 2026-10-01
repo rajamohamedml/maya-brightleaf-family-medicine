@@ -11,10 +11,11 @@ export const Route = createFileRoute("/api/public/hooks/run-automations")({
         if (denied) return denied;
         const body = z.object({ now: z.string().datetime({ offset: true }).optional() }).safeParse(await request.json().catch(() => ({})));
         if (!body.success) return Response.json({ error: "invalid_input" }, { status: 400 });
+        const { resolveAppUrl } = await import("@/lib/app-url.server");
         const { getNow } = await import("@/lib/scheduling.server");
         const { runAutomations, summaryText } = await import("@/lib/automations.server");
         const now = body.data.now ? new Date(body.data.now) : await getNow();
-        const summary = await runAutomations(now, new URL(request.url).origin);
+        const summary = await runAutomations(now, resolveAppUrl(request));
         return Response.json({ ok: true, now: now.toISOString(), summary, text: summaryText(summary) });
       },
     },
