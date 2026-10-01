@@ -315,7 +315,8 @@ async function recalls(now: Date, base: string, s: RunSummary) {
 }
 
 async function taskReplies(now: Date, s: RunSummary) {
-  const { data: tasks } = await db().from("tasks").select("id,kind,patient_id,contact_name,contact_phone,created_at").eq("status", "open");
+  // Auto-replies are only useful promptly; older open tasks are already in Jen's hands.
+  const { data: tasks } = await db().from("tasks").select("id,kind,patient_id,contact_name,contact_phone,created_at").eq("status", "open").gte("created_at", new Date(now.getTime() - 24 * H).toISOString());
   const labels: Record<string, string> = { refill: "refill request", records: "records request", billing: "billing question", callback: "callback request" };
   for (const t of tasks ?? []) {
     if (!t.contact_phone) continue;
