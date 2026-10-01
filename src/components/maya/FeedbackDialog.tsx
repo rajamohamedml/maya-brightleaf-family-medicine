@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Bug, CheckCircle2, Lightbulb, MessageSquareHeart, Star } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { StarRating, StarsDisplay, ratingLabels } from "./StarRating";
 
 const kinds = [
   { id: "bug", label: "Complaints", icon: Bug },
@@ -10,7 +11,7 @@ const kinds = [
   { id: "general", label: "General", icon: Star },
 ] as const;
 type Kind = (typeof kinds)[number]["id"];
-type Note = { kind: Kind; name: string | null; text: string; at: string };
+type Note = { kind: Kind; name: string | null; rating: number | null; text: string; at: string };
 
 const feedbackSchema = z.object({
   kind: z.enum(["bug", "idea", "general"]),
@@ -19,6 +20,7 @@ const feedbackSchema = z.object({
     .trim()
     .max(60, "Please keep your name under 60 characters.")
     .transform((v) => (v ? v : null)),
+  rating: z.number().int().min(1).max(5).nullable(),
   text: z.string().trim().min(1, "Please write your feedback.").max(1000, "Please keep it under 1,000 characters."),
 });
 
@@ -29,19 +31,24 @@ export function FeedbackDialog({ triggerClassName }: { triggerClassName: string 
   const [tab, setTab] = useState<"send" | "see">("send");
   const [kind, setKind] = useState<Kind>("general");
   const [name, setName] = useState("");
+  const [rating, setRating] = useState<number | null>(null);
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [sent, setSent] = useState(false);
 
+  const rated = notes.filter((n) => n.rating != null);
+  const avg = rated.length ? rated.reduce((s, n) => s + (n.rating ?? 0), 0) / rated.length : 0;
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const r = feedbackSchema.safeParse({ kind, name, text });
+    const r = feedbackSchema.safeParse({ kind, name, rating, text });
     if (!r.success) return setError(r.error.issues[0]?.message ?? "Please check the form.");
     setError("");
     setNotes((n) => [{ ...r.data, at: new Date().toLocaleString() }, ...n]);
     setText("");
     setName("");
+    setRating(null);
     setSent(true);
   };
 
@@ -115,6 +122,10 @@ export function FeedbackDialog({ triggerClassName }: { triggerClassName: string 
                 />
               </div>
               <div className="space-y-1.5">
+                <p id="fb-rating" className="text-sm font-semibold">Rating (optional)</p>
+                <StarRating value={rating} onChange={setRating} />
+              </div>
+              <div className="space-y-1.5">
                 <label htmlFor="fb-text" className="text-sm font-semibold">Your feedback</label>
                 <textarea
                   id="fb-text"
@@ -146,17 +157,34 @@ export function FeedbackDialog({ triggerClassName }: { triggerClassName: string 
         ) : notes.length === 0 ? (
           <p className="py-6 text-center text-muted-foreground">No feedback yet.</p>
         ) : (
-          <ul className="max-h-72 space-y-2 overflow-y-auto">
-            {notes.map((n, i) => (
-              <li key={i} className="rounded-lg border border-border p-3">
-                <p className="text-sm font-semibold text-primary">
-                  <span className="capitalize">{n.kind}</span> · {n.name ?? "Anonymous"}{" "}
-                  <span className="font-normal text-muted-foreground">· {n.at}</span>
-                </p>
-                <p className="mt-1">{n.text}</p>
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">
+              {rated.length ? (
+                <>
+                  {avg.toFixed(1)} <span className="text-primary" aria-hidden="true">★</span>
+                  <span className="sr-only">stars</span> from {rated.length} rating{rated.length > 1 ? "s" : ""}
+                </>
+              ) : (
+                <span className="text-muted-foreground">No ratings yet</span>
+              )}
+            </p>
+            <ul className="max-h-72 space-y-2 overflow-y-auto">
+              {notes.map((n, i) => (
+                <li key={i} className="rounded-lg border border-border p-3">
+                  <p className="text-sm font-semibold text-primary">
+                    <span className="capitalize">{n.kind}</span> · {n.name ?? "Anonymous"}{" "}
+                    <span className="font-normal text-muted-foreground">· {n.at}</span>
+                  </p>
+                  {n.rating != null && (
+                    <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                      <StarsDisplay value={n.rating} /> {ratingLabels[n.rating]}
+                    </p>
+                  )}
+                  <p className="mt-1">{n.text}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </DialogContent>
     </Dialog>
