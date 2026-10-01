@@ -56,16 +56,18 @@ function ClinicLayout() {
   const signOut = useSignOut();
   const navigate = useNavigate();
   const isLogin = pathname.startsWith("/clinic/login");
-  const access = useStaffAccess(!isLogin);
+  // While navigating away from /clinic the layout briefly stays mounted with the new path; ignore that.
+  const inClinic = pathname.startsWith("/clinic");
+  const access = useStaffAccess(inClinic && !isLogin);
   const ctx = { email: access.email };
   const counts = useServerFn(getNavCounts);
-  const q = useQuery({ queryKey: ["staff", "nav"], queryFn: () => counts(), enabled: !isLogin && access.state === "allowed", staleTime: 30_000 });
+  const q = useQuery({ queryKey: ["staff", "nav"], queryFn: () => counts(), enabled: inClinic && !isLogin && access.state === "allowed", staleTime: 30_000 });
 
   useEffect(() => {
-    if (!isLogin && access.state === "signed_out") navigate({ to: "/clinic/login", replace: true });
-  }, [isLogin, access.state, navigate]);
+    if (inClinic && !isLogin && access.state === "signed_out") navigate({ to: "/clinic/login", replace: true });
+  }, [inClinic, isLogin, access.state, navigate]);
 
-  if (isLogin) return <Outlet />;
+  if (isLogin || !inClinic) return <Outlet />;
   if (access.state === "checking" || access.state === "signed_out") return <ClinicLoading />;
   if (access.state === "denied") {
     return (
