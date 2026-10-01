@@ -216,7 +216,9 @@ function Landing() {
             {HOURS.map((h) => (
               <div key={h.days} className="contents">
                 <dt>{h.days}</dt>
-                <dd className="text-right text-muted-foreground">{h.time}</dd>
+                <dd className="text-right text-muted-foreground">
+                  {h.time.replace(/ (?=(?:AM|PM)(?: |$))/g, "\u00A0")}
+                </dd>
               </div>
             ))}
           </dl>
