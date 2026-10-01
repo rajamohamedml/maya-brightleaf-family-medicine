@@ -103,6 +103,7 @@ export function VoicePanel({
   emergency = false,
   onIdlePrompt,
   onIdleClose,
+  skipGreeting = false,
 }: {
   messages: UIMessage[];
   busy: boolean;
@@ -115,6 +116,7 @@ export function VoicePanel({
   emergency?: boolean;
   onIdlePrompt?: (text: string) => void;
   onIdleClose?: () => void;
+  skipGreeting?: boolean;
 }) {
   const [supported, setSupported] = useState(true);
   const [denied, setDenied] = useState(false);
@@ -129,6 +131,9 @@ export function VoicePanel({
   const ended = useRef(false);
   const active = useRef(false); // mic toggled on by the user
   const greeted = useRef(false);
+  /** Resuming a restored voice conversation: no repeat greeting. */
+  const skipGreetingRef = useRef(skipGreeting);
+  skipGreetingRef.current = skipGreeting;
   const lastStartSignal = useRef(startSignal);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleStep = useRef(0);
@@ -395,7 +400,8 @@ export function VoicePanel({
     active.current = true;
     clearIdle(true);
     onSessionStart?.();
-    if (greeted.current) {
+    if (greeted.current || skipGreetingRef.current) {
+      greeted.current = true;
       listen();
       return;
     }

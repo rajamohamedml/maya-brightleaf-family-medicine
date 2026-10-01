@@ -627,6 +627,7 @@ export function MayaChat({
               onSend={sendVoice}
               onEnd={() => {
                 setVoiceSession(false);
+                setResumeVoice(false);
                 setMessages((current) => [
                   ...current,
                   {
@@ -637,8 +638,12 @@ export function MayaChat({
                 ]);
                 focus();
               }}
-              onSessionStart={() => setVoiceSession(true)}
+              onSessionStart={() => {
+                setVoiceSession(true);
+                setResumeVoice(false);
+              }}
               startSignal={voiceStartSignal}
+              skipGreeting={resumeVoice}
               emergency={emergency}
               onIdlePrompt={addMaya}
               onIdleClose={closeChat}
