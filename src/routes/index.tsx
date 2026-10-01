@@ -11,11 +11,13 @@ import {
   X,
   MessageCircle,
   Sparkles,
+  PlayCircle,
 } from "lucide-react";
 import { PageShell } from "@/components/maya/PageShell";
 import { LoadingSkeleton } from "@/components/maya/LoadingSkeleton";
 import { CLINIC, HOURS, INSURERS, VISIT_TYPES } from "@/lib/clinic-info";
 import { getPublicImpact } from "@/lib/booking.functions";
+import { VIDEO_URL } from "@/lib/site";
 
 const MayaChat = lazy(() =>
   import("@/components/chat/MayaChat").then((m) => ({ default: m.MayaChat })),
@@ -85,24 +87,30 @@ function Landing() {
       <div className="hero-glow -mx-4 px-4 py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_540px] lg:items-start lg:gap-10 lg:px-4 lg:py-12">
         <div>
           <p className="text-sm font-semibold text-primary">
-            {CLINIC.doctor} · Las Colinas, Irving
+            8:02 am. 40 calls. One assistant. 1 in 3 callers hang up.
           </p>
           <h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
-            Get in with Dr. Rahman — no hold music.
+            Get in with Dr. Rahman - no hold music.
           </h1>
-          <p className="mt-3 text-lg text-muted-foreground">
-            Maya books, confirms and reminds, 24/7.
+          <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
+            Patients couldn't get through Brightleaf's 8am phone rush; Maya now books confirmed visits by voice or chat 24/7 and auto-refills no-shows and cancellations.
           </p>
           <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm">
             <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
             <span>
               <span className="font-semibold">{impact.hours}</span> staff hours saved this week
             </span>
+            <span className="rounded bg-muted px-1.5 text-xs text-muted-foreground">fictional estimate</span>
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link to="/book" className={`${btn} bg-primary text-primary-foreground hover:bg-primary/90`}>
               <CalendarCheck className="h-5 w-5" aria-hidden="true" /> Book a visit
             </Link>
+            {VIDEO_URL && (
+              <Link to="/watch" className={`${btn} border border-border hover:border-primary`}>
+                <PlayCircle className="h-5 w-5 text-primary" aria-hidden="true" /> Watch the 3-minute demo
+              </Link>
+            )}
           </div>
         </div>
         <div
