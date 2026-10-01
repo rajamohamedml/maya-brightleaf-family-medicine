@@ -123,12 +123,10 @@ export async function handleMayaChat(request: Request): Promise<Response> {
   if (!messages.length) return Response.json({ error: "No messages" }, { status: 400 });
 
   // Hard safety gate: a red flag in the newest patient message stops booking before any model call.
+  // After an emergency was already handled, red-flag words in the newest message are screened by
+  // the classifier below instead, so clarifications ("my dad had chest pain last year") pass
+  // while a genuinely new emergency still repeats the 911 message.
   const latestUser = lastUserText(messages);
-  if (keywordEmergency(latestUser)) return emergencyResponse();
-
-  // If an emergency was already handled in this conversation, later check_emergency
-  // calls must screen only the newest words — never the earlier symptom text still
-  // sitting in the history, or the 911 card repeats on every following message.
   const emergencyAlreadyHandled = messages.some((m) =>
     m.role === "assistant" &&
     m.parts.some(
@@ -140,6 +138,7 @@ export async function handleMayaChat(request: Request): Promise<Response> {
           (p as { output?: { emergency?: boolean } }).output?.emergency === true),
     ),
   );
+  if (keywordEmergency(latestUser) && !emergencyAlreadyHandled) return emergencyResponse();
 
   const apiKey = process.env['LOVABLE_API_KEY'];
   if (!apiKey) return Response.json({ error: "AI is not configured" }, { status: 500 });
